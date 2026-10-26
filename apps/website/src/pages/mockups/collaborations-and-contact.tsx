@@ -1,4 +1,3 @@
-import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { type NextPage } from "next";
 import Image from "next/image";
 import {
@@ -12,11 +11,11 @@ import {
 
 import collaborations, { type Collaboration } from "@/data/collaborations";
 
-import { classes } from "@/utils/classes";
 import { formatDateTime } from "@/utils/datetime";
 
 import { useCopyToClipboard } from "@/hooks/clipboard";
 
+import Box from "@/components/content/Box";
 import Heading from "@/components/content/Heading";
 import InPageNav from "@/components/content/InPageNav";
 import Lightbox from "@/components/content/Lightbox";
@@ -91,68 +90,123 @@ const CollaborationCard = ({
       : undefined;
 
   return (
-    <li
-      id={collaboration.slug}
-      className="flex scroll-mt-20 flex-col overflow-hidden rounded-xl border border-alveus-green-200 bg-alveus-tan-50"
-    >
-      <Link
-        href={`https://www.youtube.com/watch?v=${collaboration.videoId}`}
-        external
-        custom
-        onClick={(e) => {
-          e.preventDefault();
-          onOpen(collaboration.slug);
-        }}
-        className="group/trigger block"
-      >
-        <YouTubePreview
-          videoId={collaboration.videoId}
-          alt={`Watch the ${collaboration.name} collaboration`}
-          className="aspect-video h-auto w-full object-cover"
-        />
-      </Link>
-      <div className="flex flex-col gap-1 p-4">
-        <Heading level={3} className="my-0 text-2xl">
-          {collaboration.link !== null ? (
-            <Link
-              href={collaboration.link}
-              external
-              custom
-              className="hover:text-alveus-green-600 hover:underline"
-            >
-              {highlight(collaboration.name, query)}
-            </Link>
-          ) : (
-            highlight(collaboration.name, query)
+    <li id={collaboration.slug} className="scroll-mt-28">
+      <Box className="flex h-full flex-col p-0">
+        <Link
+          href={`https://www.youtube.com/watch?v=${collaboration.videoId}`}
+          external
+          custom
+          onClick={(e) => {
+            e.preventDefault();
+            onOpen(collaboration.slug);
+          }}
+          className="group/trigger block"
+        >
+          <YouTubePreview
+            videoId={collaboration.videoId}
+            alt={`Watch the ${collaboration.name} collaboration`}
+            className="aspect-video h-auto w-full object-cover"
+          />
+        </Link>
+        <div className="flex flex-col gap-1 p-4">
+          <Heading level={3} className="my-0 text-2xl">
+            {collaboration.link !== null ? (
+              <Link
+                href={collaboration.link}
+                external
+                custom
+                className="hover:text-alveus-green-600 hover:underline"
+              >
+                {highlight(collaboration.name, query)}
+              </Link>
+            ) : (
+              highlight(collaboration.name, query)
+            )}
+          </Heading>
+          {creatorMatch && (
+            <p className="text-sm text-alveus-green-700">
+              With {highlight(creatorMatch.name, query)}
+            </p>
           )}
-        </Heading>
-        {creatorMatch && (
-          <p className="text-sm text-alveus-green-700">
-            With {highlight(creatorMatch.name, query)}
+          <p className="text-alveus-green-700">
+            {formatDateTime(collaboration.date, { style: "long" })}
           </p>
-        )}
-        <p className="text-alveus-green-700">
-          {formatDateTime(collaboration.date, { style: "long" })}
-        </p>
-        {collaboration.vodId && (
-          <p>
-            <Link
-              href={`https://www.youtube.com/watch?v=${collaboration.vodId}&list=PLtQafKoimfLd6dM9CQqiLm79khNgxsoN3`}
-              external
-            >
-              Full stream VoD
-            </Link>
-          </p>
+          {collaboration.vodId && (
+            <p>
+              <Link
+                href={`https://www.youtube.com/watch?v=${collaboration.vodId}&list=PLtQafKoimfLd6dM9CQqiLm79khNgxsoN3`}
+                external
+              >
+                Full stream VoD
+              </Link>
+            </p>
+          )}
+        </div>
+      </Box>
+    </li>
+  );
+};
+
+const SearchControl = ({
+  query,
+  setQuery,
+  count,
+}: {
+  query: string;
+  setQuery: (value: string) => void;
+  count: number;
+}) => {
+  const searchId = useId();
+  const countId = useId();
+  const trimmed = query.trim();
+
+  return (
+    <div className="flex w-full items-center gap-3 sm:w-auto">
+      <label htmlFor={searchId} className="sr-only">
+        Search by collaborator name
+      </label>
+      <div className="flex min-w-0 grow items-center rounded-lg border border-alveus-green/40 bg-alveus-tan-50 focus-within:outline-2 focus-within:outline-alveus-green-700 sm:w-64 sm:grow-0">
+        <IconSearch className="ml-3 size-4 shrink-0 text-alveus-green-700" />
+        <input
+          id={searchId}
+          type="search"
+          value={query}
+          placeholder="Search by name"
+          aria-describedby={countId}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setQuery("");
+          }}
+          autoComplete="off"
+          className="min-w-0 grow bg-transparent px-2 py-1.5 outline-none placeholder:text-alveus-green-600 [&::-webkit-search-cancel-button]:hidden"
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            className="mr-1 rounded-md p-1.5 text-alveus-green-700 hover:bg-alveus-green-100"
+          >
+            <IconX className="size-4" />
+            <span className="sr-only">Clear search</span>
+          </button>
         )}
       </div>
-    </li>
+      <p
+        id={countId}
+        aria-live="polite"
+        className="shrink-0 text-sm whitespace-nowrap text-alveus-green-700 tabular-nums"
+      >
+        {trimmed
+          ? `${count.toLocaleString()} of ${collaborations.length.toLocaleString()}`
+          : `${collaborations.length.toLocaleString()} total`}
+      </p>
+    </div>
   );
 };
 
 const CollaborationsView = () => {
   const [query, setQuery] = useState("");
   const trimmed = query.trim();
-  const searchId = useId();
 
   const filtered = useMemo(
     () =>
@@ -241,44 +295,12 @@ const CollaborationsView = () => {
       <InPageNav
         label="Collaboration years"
         items={filtered.map(([year]) => ({ id: `year-${year}`, label: year }))}
-      />
+        controlsClassName="w-full sm:w-auto"
+      >
+        <SearchControl query={query} setQuery={setQuery} count={count} />
+      </InPageNav>
 
       <Section className="grow pt-8">
-        <div className="mb-8 flex flex-col gap-2">
-          <label htmlFor={searchId} className="font-semibold">
-            Search by collaborator name
-          </label>
-          <div className="flex max-w-xl items-center rounded-lg border border-alveus-green/40 bg-alveus-tan-50 focus-within:outline-2 focus-within:outline-alveus-green-700">
-            <IconSearch className="ml-3 size-4 shrink-0 text-alveus-green-700" />
-            <input
-              id={searchId}
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") setQuery("");
-              }}
-              autoComplete="off"
-              className="min-w-0 grow bg-transparent px-3 py-2 outline-none [&::-webkit-search-cancel-button]:hidden"
-            />
-            {query && (
-              <button
-                type="button"
-                onClick={() => setQuery("")}
-                className="mr-1 rounded-md p-2 text-alveus-green-700 hover:bg-alveus-green-100"
-              >
-                <IconX className="size-4" />
-                <span className="sr-only">Clear search</span>
-              </button>
-            )}
-          </div>
-          <p aria-live="polite" className="text-sm text-alveus-green-700">
-            {trimmed
-              ? `${count.toLocaleString()} of ${collaborations.length.toLocaleString()} collaborations`
-              : `${collaborations.length.toLocaleString()} collaborations`}
-          </p>
-        </div>
-
         {filtered.length === 0 && (
           <p className="py-12 text-center text-lg text-alveus-green-700">
             No collaborators match that name.
@@ -433,8 +455,11 @@ const EmailRow = ({ email }: { email: string }) => {
   const { copy, statusText } = useCopyToClipboard();
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl bg-alveus-green-800 p-4 sm:flex-row sm:items-center">
-      <p className="grow font-serif text-xl font-bold break-all">{email}</p>
+    <div className="flex flex-col gap-3 rounded-xl bg-alveus-green-800 p-4">
+      {/* Own line so the address only wraps when it can't fit at all */}
+      <p className="font-serif text-lg font-bold wrap-anywhere sm:text-xl">
+        {email}
+      </p>
       <div className="flex shrink-0 gap-2">
         <button
           type="button"
@@ -469,71 +494,45 @@ const ContactView = () => (
       We are not openly hiring.
     </p>
 
-    <TabGroup vertical>
-      <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <TabList
-          aria-label="Contact category"
-          className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-col"
-        >
-          {categories.map((category) => (
-            <Tab
-              key={category.key}
-              className={({ selected }) =>
-                classes(
-                  "rounded-lg border px-4 py-3 text-left font-serif text-lg transition-colors focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700 motion-reduce:transition-none",
-                  selected
-                    ? "border-alveus-green bg-alveus-green text-alveus-tan"
-                    : "border-alveus-green-200 bg-alveus-tan-50 hover:border-alveus-green-400",
-                )
-              }
-            >
+    <ul className="grid gap-6 md:grid-cols-2">
+      {categories.map((category) => (
+        <li key={category.key} id={`contact-${category.key}`}>
+          <Box dark className="flex h-full flex-col gap-4 p-6 md:p-8">
+            <Heading level={2} className="my-0 text-3xl">
               {category.name}
-            </Tab>
-          ))}
-        </TabList>
+            </Heading>
+            <p className="text-lg">{category.description}</p>
 
-        <TabPanels>
-          {categories.map((category) => (
-            <TabPanel
-              key={category.key}
-              className="flex flex-col gap-4 rounded-2xl bg-alveus-green p-6 text-alveus-tan focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700"
-            >
-              <Heading level={2} className="my-0 text-3xl">
-                {category.name}
-              </Heading>
-              <p className="text-lg">{category.description}</p>
+            {category.emails.map((email) => (
+              <EmailRow key={email} email={email} />
+            ))}
 
-              {category.emails.map((email) => (
-                <EmailRow key={email} email={email} />
-              ))}
-
-              {category.links.map((group) => (
-                <div key={group.items[0]!.href}>
-                  {group.label && <p className="mb-2">{group.label}</p>}
-                  <ul className="flex flex-wrap gap-x-6 gap-y-2">
-                    {group.items.map((link) => (
-                      <li key={link.href}>
-                        <Link
-                          href={link.href}
-                          external={link.external}
-                          dark
-                          className="inline-flex items-center gap-1 text-lg"
-                        >
-                          {link.text}
-                          {!link.external && (
-                            <IconArrowRight className="size-4" />
-                          )}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </TabPanel>
-          ))}
-        </TabPanels>
-      </div>
-    </TabGroup>
+            {category.links.map((group) => (
+              <div key={group.items[0]!.href}>
+                {group.label && <p className="mb-2">{group.label}</p>}
+                <ul className="flex flex-wrap gap-x-6 gap-y-2">
+                  {group.items.map((link) => (
+                    <li key={link.href}>
+                      <Link
+                        href={link.href}
+                        external={link.external}
+                        dark
+                        className="inline-flex items-center gap-1 text-lg"
+                      >
+                        {link.text}
+                        {!link.external && (
+                          <IconArrowRight className="size-4" />
+                        )}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </Box>
+        </li>
+      ))}
+    </ul>
   </Section>
 );
 

@@ -20,6 +20,8 @@ type InPageNavProps = {
   label: string;
   // Optional controls (e.g. a sort dropdown) shown at the end of the bar
   children?: ReactNode;
+  // Extra classes for the controls wrapper (e.g. full width on phones)
+  controlsClassName?: string;
   // Called before jumping, e.g. to expand a collapsed section
   onNavigate?: (id: string) => void;
   className?: string;
@@ -37,6 +39,7 @@ const InPageNav = ({
   items,
   label,
   children,
+  controlsClassName,
   onNavigate,
   className,
 }: InPageNavProps) => {
@@ -179,7 +182,12 @@ const InPageNav = ({
         </ul>
 
         {children && (
-          <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 py-2">
+          <div
+            className={classes(
+              "flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 py-2",
+              controlsClassName,
+            )}
+          >
             {children}
           </div>
         )}
