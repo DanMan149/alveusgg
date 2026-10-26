@@ -18,10 +18,12 @@ import staff, { type Staff } from "@/data/staff";
 import { classes } from "@/utils/classes";
 import { formatPartialDateString } from "@/utils/datetime-partial";
 
+import Button from "@/components/content/Button";
 import Heading from "@/components/content/Heading";
 import InPageNav from "@/components/content/InPageNav";
 import Lightbox from "@/components/content/Lightbox";
 import Link from "@/components/content/Link";
+import { MayaImage } from "@/components/content/Maya";
 import Meta from "@/components/content/Meta";
 import Section from "@/components/content/Section";
 import {
@@ -118,6 +120,45 @@ const entries = history
 type Entry = (typeof entries)[number];
 
 const historyYears = [...new Set(entries.map((entry) => entry.year))];
+
+// The live history puts video blocks (tours, recap) between the dated entries.
+// Keep each one next to the entry that comes before it on the live page.
+type HistoryBlock = {
+  key: string;
+  year: string;
+  afterKey: string;
+  content: ReactNode;
+};
+
+const historyBlocks = history.reduce<{
+  blocks: HistoryBlock[];
+  previous?: { key: string; date: string };
+}>(
+  (acc, section) => {
+    if ("items" in section) return { ...acc, previous: section.items.at(-1) };
+    if (!acc.previous) return acc;
+    return {
+      ...acc,
+      blocks: [
+        ...acc.blocks,
+        {
+          key: section.key,
+          year: acc.previous.date.slice(0, 4),
+          afterKey: acc.previous.key,
+          content: section.cta,
+        },
+      ],
+    };
+  },
+  { blocks: [] },
+).blocks;
+
+// Same markup as the dark Section used for these blocks on the live page
+const HistoryVideoBlock = ({ block }: { block: HistoryBlock }) => (
+  <li className="relative z-10 overflow-clip rounded-xl bg-alveus-green px-4 py-10 text-alveus-tan md:px-8">
+    {block.content}
+  </li>
+);
 
 const HistoryCard = ({
   entry,
@@ -218,6 +259,31 @@ const HistoryView = () => {
         <Heading className="my-0">Alveus&apos; History</Heading>
       </Section>
 
+      {/* First block of the live history, copied from the about page */}
+      <Section dark className="border-t border-alveus-green-700">
+        <div className="flex flex-wrap-reverse items-center">
+          <div className="basis-full pt-8 md:basis-1/2 md:pt-0 md:pr-8">
+            <MayaImage className="mx-auto h-auto w-full max-w-lg lg:mr-0" />
+          </div>
+
+          <div className="basis-full md:basis-1/2 md:px-4">
+            <Heading level={2} className="italic">
+              Maya Higa founded Alveus in February 2021
+            </Heading>
+            <p>
+              She is one of the top female streamers on Twitch and has amassed a
+              large following on YouTube and other social platforms. She has
+              experience as a licensed falconer, wildlife rehabilitator,
+              zookeeper, and conservation outreach educator.
+            </p>
+
+            <Button href="/about/staff" dark className="mt-8">
+              Learn more about Maya and the team at Alveus
+            </Button>
+          </div>
+        </div>
+      </Section>
+
       <InPageNav
         label="History years"
         items={historyYears.map((year) => ({
@@ -276,8 +342,17 @@ const HistoryView = () => {
           </div>
 
           {historyYears.map((year) => {
-            const yearEntries = entries.filter(
-              (entry) => entry.year === year && visible[entry.category],
+            const allYearEntries = entries.filter(
+              (entry) => entry.year === year,
+            );
+            const yearEntries = allYearEntries.filter(
+              (entry) => visible[entry.category],
+            );
+            const sideIndex = new Map(
+              yearEntries.map((entry, idx) => [entry.key, idx]),
+            );
+            const yearBlocks = historyBlocks.filter(
+              (block) => block.year === year,
             );
             const isOpen = !!open[year];
             const panelId = `history-${year}-panel`;
@@ -315,18 +390,30 @@ const HistoryView = () => {
                 </Heading>
 
                 <div id={panelId} hidden={!isOpen} className="pt-4">
-                  {yearEntries.length ? (
+                  {(yearEntries.length > 0 || yearBlocks.length > 0) && (
                     <ol className="flex flex-col gap-6">
-                      {yearEntries.map((entry, idx) => (
-                        <HistoryCard
-                          key={entry.key}
-                          entry={entry}
-                          side={idx % 2 ? "right" : "left"}
-                        />
-                      ))}
+                      {allYearEntries.flatMap((entry) => {
+                        const block = yearBlocks.find(
+                          (item) => item.afterKey === entry.key,
+                        );
+                        const idx = sideIndex.get(entry.key);
+                        return [
+                          block && (
+                            <HistoryVideoBlock key={block.key} block={block} />
+                          ),
+                          idx !== undefined && (
+                            <HistoryCard
+                              key={entry.key}
+                              entry={entry}
+                              side={idx % 2 ? "right" : "left"}
+                            />
+                          ),
+                        ];
+                      })}
                     </ol>
-                  ) : (
-                    <p className="pl-14 text-alveus-green-700 md:pl-0 md:text-center">
+                  )}
+                  {yearEntries.length === 0 && (
+                    <p className="mt-6 pl-14 text-alveus-green-700 md:pl-0 md:text-center">
                       No events match the current filter.
                     </p>
                   )}
