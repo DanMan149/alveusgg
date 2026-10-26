@@ -158,8 +158,8 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
   const [playing, setPlaying] = useState(false);
   const featuredClip = ambassador.clips[clip];
 
-  const plush =
-    ambassador.plush && "link" in ambassador.plush ? ambassador.plush : null;
+  // Either { link } (on sale) or { soon } (announced), as on the live page
+  const plush = ambassador.plush;
 
   return (
     <>
@@ -520,10 +520,19 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
         >
           {plush ? (
             <div className="flex flex-col overflow-hidden rounded-2xl border border-alveus-green-200 bg-alveus-tan-50">
-              <ImagePlaceholder
-                label="Image placeholder: plush photo"
-                className="aspect-16/10 rounded-none border-0 border-b-2"
-              />
+              <div className="relative">
+                <ImagePlaceholder
+                  label="Image placeholder: plush photo"
+                  className="aspect-16/10 rounded-none border-0 border-b-2"
+                />
+                {"soon" in plush && (
+                  // Same note as the live page, shown at all times so it also works on touch
+                  <div className="absolute inset-x-0 bottom-0 flex flex-col items-center justify-center gap-1 border-t border-alveus-green-200 bg-alveus-tan/90 p-4 text-center font-bold text-alveus-green-800">
+                    <p className="text-2xl md:text-3xl">Coming Soon</p>
+                    <p className="text-lg md:text-2xl">{plush.soon}</p>
+                  </div>
+                )}
+              </div>
               <div className="flex flex-col gap-2 p-5">
                 <Heading level={2} className="my-0 text-3xl">
                   {ambassador.name} Plush
@@ -532,14 +541,16 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
                   Or, have your very own ambassador in your home with our soft
                   and cuddly plushies!
                 </p>
-                <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
-                  <p className="font-serif text-3xl font-bold">
-                    $29.99 <span className="text-lg font-normal">USD</span>
-                  </p>
-                  <Button href={plush.link} external filled>
-                    Buy the plush
-                  </Button>
-                </div>
+                {"link" in plush && (
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
+                    <p className="font-serif text-3xl font-bold">
+                      $29.99 <span className="text-lg font-normal">USD</span>
+                    </p>
+                    <Button href={plush.link} external filled>
+                      Buy the plush
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
