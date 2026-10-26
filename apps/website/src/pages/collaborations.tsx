@@ -38,7 +38,7 @@ import leafRightImage2 from "@/assets/floral/leaf-right-2.png";
 
 type CreatorWithSlug = Creator & { slug: string };
 
-const creators = collaborations
+export const creators = collaborations
   .reduce(
     (acc, { slug, creators }) => [
       ...acc,
@@ -51,7 +51,7 @@ const creators = collaborations
   )
   .sort((a, b) => b.popularity - a.popularity);
 
-const Creators = ({ className }: { className?: string }) => {
+export const Creators = ({ className }: { className?: string }) => {
   const ref = useRef<HTMLUListElement>(null);
   const drag = useDragScroll();
 

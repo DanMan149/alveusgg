@@ -135,7 +135,7 @@ type NewsVideo = Partial<Omit<NewsArticle, "logo">> & {
 
 type News = NewsCore & (NewsArticle | NewsVideo);
 
-const news: Record<string, News> = {
+export const news: Record<string, News> = {
   cbs: {
     title: "CBS News Mornings",
     href: "https://www.cbsnews.com/boston/video/gen-z-jane-goodall-saves-wildlife-with-streaming-wildlife-sanctuary/",
@@ -263,7 +263,7 @@ type HistoryItem = {
 };
 type HistoryItems = { key: string; items: HistoryItem[] };
 
-const history: [HistoryItems, ...(HistoryCTA | HistoryItems)[]] = [
+export const history: [HistoryItems, ...(HistoryCTA | HistoryItems)[]] = [
   {
     key: "initial-construction",
     items: [
