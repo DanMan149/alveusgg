@@ -3,6 +3,7 @@ import Image from "next/image";
 import {
   type ComponentType,
   type ReactNode,
+  isValidElement,
   useCallback,
   useEffect,
   useMemo,
@@ -485,6 +486,23 @@ const departmentLabels: Record<Exclude<Department, "all">, string> = {
 
 const staffEntries = Object.entries(staff);
 
+// Some bios are components (e.g. <MayaText />), which reactToText can't see
+// inside, so render simple function components to get their text
+const descriptionText = (node: ReactNode): string => {
+  if (
+    isValidElement<Record<string, unknown>>(node) &&
+    typeof node.type === "function"
+  ) {
+    const render = node.type as (props: Record<string, unknown>) => ReactNode;
+    return descriptionText(render(node.props));
+  }
+  return reactToText(node);
+};
+
+// Same classes as the photo swap in components/content/People.tsx
+const teamImageClasses =
+  "aspect-square h-auto w-full rounded-2xl bg-alveus-green object-cover";
+
 const TeamCard = ({
   id,
   person,
@@ -496,8 +514,7 @@ const TeamCard = ({
   open: boolean;
   onToggle: () => void;
 }) => {
-  const image = Array.isArray(person.image) ? person.image[0] : person.image;
-  const text = reactToText(person.description);
+  const text = descriptionText(person.description);
   const hasMore = text.length > 120;
   const department =
     person.department !== "leadership"
@@ -510,21 +527,49 @@ const TeamCard = ({
       id={id}
       data-team-card
       className={classes(
-        "flex scroll-mt-20 flex-col gap-3 rounded-xl border bg-alveus-tan-50 p-4",
+        "group flex scroll-mt-20 flex-col gap-3 rounded-xl border bg-alveus-tan-50 p-4",
         open
           ? "col-span-full border-alveus-green md:grid md:grid-cols-[16rem_minmax(0,1fr)] md:gap-x-8"
           : "border-alveus-green-200",
       )}
+      tabIndex={-1}
     >
-      <Image
-        src={image}
-        width={320}
-        alt=""
+      {/* Photo swap copied from components/content/People.tsx; group-focus-within adds keyboard focus */}
+      <div
         className={classes(
-          "aspect-square h-auto w-full rounded-xl bg-alveus-green object-cover",
+          "relative aspect-square h-auto w-full self-start overflow-clip rounded-2xl",
           open && "md:row-span-6",
         )}
-      />
+      >
+        {Array.isArray(person.image) ? (
+          <>
+            <Image
+              src={person.image[1]}
+              width={320}
+              alt=""
+              className={teamImageClasses}
+            />
+            <Image
+              src={person.image[0]}
+              width={320}
+              alt=""
+              className={classes(
+                teamImageClasses,
+                "absolute inset-x-0 top-0 drop-shadow-[0_-10px_15px_rgba(0,0,0,0.2)] transition-[top] duration-500 group-focus-within:top-[90%] group-focus-within:duration-1000 group-hover:top-[90%] group-hover:duration-1000 group-focus:top-[90%] group-focus:duration-1000 motion-reduce:transition-none",
+              )}
+            />
+          </>
+        ) : (
+          <Image
+            src={person.image}
+            width={320}
+            alt=""
+            className={teamImageClasses}
+          />
+        )}
+
+        <div className="absolute inset-0 rounded-2xl border-4 border-alveus-green/75" />
+      </div>
       <div>
         <Heading level={3} className="my-0 text-2xl">
           {person.name}
@@ -654,7 +699,7 @@ const TeamView = ({ initialOpen }: { initialOpen?: string }) => {
           )}
         </div>
 
-        <ul className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="grid grid-cols-1 items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {filtered.map(([key, person]) => (
             <TeamCard
               key={key}
