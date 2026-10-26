@@ -1,5 +1,12 @@
 import { type NextPage } from "next";
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import events, { type Event } from "@/data/events";
 
@@ -187,6 +194,30 @@ const EventCard = ({
   const board = leaderboards[event.slug];
   const descriptionId = `${event.slug}-description`;
 
+  // Only offer "Read more" when the text is longer than the two-line preview.
+  // Measured against the line height, so it works collapsed or expanded,
+  // and re-checked whenever the width changes.
+  const descriptionRef = useRef<HTMLDivElement>(null);
+  const [overflows, setOverflows] = useState(true);
+  useEffect(() => {
+    const elm = descriptionRef.current;
+    if (!elm) return;
+
+    const measure = () => {
+      const first = elm.firstElementChild;
+      if (!(first instanceof HTMLElement)) return setOverflows(false);
+      const lineHeight = parseFloat(getComputedStyle(first).lineHeight);
+      setOverflows(
+        elm.children.length > 1 || first.scrollHeight > lineHeight * 2 + 1,
+      );
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(elm);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <article
       id={event.slug}
@@ -207,6 +238,7 @@ const EventCard = ({
           </p>
 
           <div
+            ref={descriptionRef}
             id={descriptionId}
             className={classes(
               "mt-1 flex flex-col gap-3 text-alveus-green-900",
@@ -215,15 +247,17 @@ const EventCard = ({
           >
             {info}
           </div>
-          <button
-            type="button"
-            onClick={onToggle}
-            aria-expanded={expanded}
-            aria-controls={descriptionId}
-            className="self-start text-red-600 underline transition-colors hover:text-blue-600"
-          >
-            {expanded ? "Show less" : "Read more"}
-          </button>
+          {overflows && (
+            <button
+              type="button"
+              onClick={onToggle}
+              aria-expanded={expanded}
+              aria-controls={descriptionId}
+              className="self-start text-red-600 underline transition-colors hover:text-blue-600"
+            >
+              {expanded ? "Show less" : "Read more"}
+            </button>
+          )}
         </div>
 
         <dl className="grid grid-cols-2 content-start gap-2 md:col-span-2 md:grid-cols-4 xl:col-span-1 xl:grid-cols-2">
