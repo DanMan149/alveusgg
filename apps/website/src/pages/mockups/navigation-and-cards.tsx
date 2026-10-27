@@ -58,10 +58,6 @@ const activeAmbassadors = typeSafeObjectEntries(ambassadors).filter(
   isActiveAmbassadorEntry,
 );
 
-const homepageAmbassadors = activeAmbassadors
-  .filter(([, ambassador]) => !!ambassador.homepage)
-  .map(([key]) => key);
-
 // The next upcoming birthday among ambassadors with a full date of birth
 const getBirthdayAmbassador = (today: Date) => {
   const withBirthdays = activeAmbassadors
@@ -93,7 +89,8 @@ const modes: Record<Mode, string> = {
 type Props = { randomAmbassadors: AmbassadorKey[] };
 
 export const getStaticProps: GetStaticProps<Props> = () => {
-  const pool = [...homepageAmbassadors];
+  // Every active ambassador, same list as the live /ambassadors page
+  const pool = activeAmbassadors.map(([key]) => key);
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j]!, pool[i]!];
@@ -156,7 +153,7 @@ const AmbassadorCard = ({
       >
         {ambassador.name}
       </Heading>
-      <p>{ambassador.homepage?.description ?? ambassador.mission}</p>
+      <p>{ambassador.mission}</p>
       <Link href={href} className="mt-auto inline-flex items-center gap-1">
         Meet {ambassador.name}
         <IconArrowRight className="size-4" />
@@ -212,7 +209,8 @@ const FeaturedAmbassadors = ({
               size="wide"
               badge="Birthday today"
             />
-            {homepageAmbassadors
+            {/* Side cards: the build-time random pick from all active ambassadors */}
+            {randomAmbassadors
               .filter((key) => key !== birthday.key)
               .slice(0, 2)
               .map((key) => (
@@ -225,12 +223,7 @@ const FeaturedAmbassadors = ({
 
     default:
       content = (
-        <div
-          className={classes(
-            "grid grid-cols-2 items-start gap-6",
-            randomAmbassadors.length < 4 ? "lg:grid-cols-3" : "lg:grid-cols-4",
-          )}
-        >
+        <div className="grid grid-cols-2 items-start gap-6 lg:grid-cols-4">
           {randomAmbassadors.map((key) => (
             <AmbassadorCard key={key} ambassadorKey={key} />
           ))}
@@ -396,13 +389,6 @@ const NavigationAndCardsPage: NextPage<Props> = ({ randomAmbassadors }) => (
       <Heading level={2} id="featured-ambassadors">
         2. Home: featured ambassadors
       </Heading>
-      <p className="mb-8 max-w-3xl">
-        Shows up to four ambassadors at once instead of a carousel. Random picks
-        them from the home page ambassadors when the page is built, refreshed
-        every 30 minutes like the home page YouTube section. Birthday features
-        the next ambassador birthday from the birth dates in the data. Photos,
-        names and text come from the ambassador data.
-      </p>
 
       <FeaturedAmbassadors randomAmbassadors={randomAmbassadors} />
     </Section>
