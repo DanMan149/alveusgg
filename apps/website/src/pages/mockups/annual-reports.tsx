@@ -16,8 +16,6 @@ type KeyStats = {
   income: string;
   expenses: string;
   net: string;
-  // Where the money figures come from, when not the report itself
-  source?: string;
   reach: { value: string; label: string } | null;
 };
 
@@ -54,7 +52,6 @@ const stats: Record<number, KeyStats> = {
     income: "$763,380",
     expenses: "$156,899",
     net: "$606,481",
-    source: "Form 990",
     reach: null,
   },
 };
@@ -76,11 +73,6 @@ const NotAvailable = ({ what }: { what: string }) => (
     n/a<span className="sr-only"> ({what})</span>
   </span>
 );
-
-const Source = ({ source }: { source?: string }) =>
-  source ? (
-    <span className="block text-sm text-alveus-green-700">per {source}</span>
-  ) : null;
 
 const AnnualReportsMockupPage: NextPage = () => (
   <>
@@ -160,18 +152,11 @@ const AnnualReportsMockupPage: NextPage = () => (
                     <NotAvailable what="no summary in this report" />
                   )}
                 </td>
-                <td className="p-4 text-right tabular-nums">
-                  {report.income}
-                  <Source source={report.source} />
-                </td>
+                <td className="p-4 text-right tabular-nums">{report.income}</td>
                 <td className="p-4 text-right tabular-nums">
                   {report.expenses}
-                  <Source source={report.source} />
                 </td>
-                <td className="p-4 text-right tabular-nums">
-                  {report.net}
-                  <Source source={report.source} />
-                </td>
+                <td className="p-4 text-right tabular-nums">{report.net}</td>
                 <td className="p-4">
                   {report.reach ? (
                     <>
