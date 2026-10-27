@@ -16,7 +16,7 @@ import {
 } from "react";
 import reactToText from "react-to-text";
 
-import staff, { type Staff, departments } from "@/data/staff";
+import staff, { type Staff, type departments } from "@/data/staff";
 
 import { classes } from "@/utils/classes";
 import { formatPartialDateString } from "@/utils/datetime-partial";
@@ -487,11 +487,19 @@ const TeamPhoto = ({
   </div>
 );
 
-// Department label from the live team page (full name plus abbreviation)
+// Same labels as the live team page's departments (src/data/staff.tsx),
+// without the abbreviation tooltip, since the full name sits beside it
+const departmentLabels: Record<keyof typeof departments, string | null> = {
+  leadership: null,
+  animalCare: "Animal Care (ACS)",
+  facilities: "Facilities and Infrastructure (FAID)",
+  operations: "Operations (OPS)",
+};
+
 const DepartmentLabel = ({ person }: { person: Staff }) =>
-  departments[person.department] ? (
+  departmentLabels[person.department] ? (
     <p className="font-sans text-base text-alveus-green-600 uppercase">
-      {departments[person.department]}
+      {departmentLabels[person.department]}
     </p>
   ) : null;
 
@@ -666,7 +674,7 @@ const TeamView = ({ initialOpen }: { initialOpen?: string }) => {
                   onClick={() => setDepartment(key)}
                   className={underlineTabClassName(department === key)}
                 >
-                  {key === "all" ? "All" : departments[key]}{" "}
+                  {key === "all" ? "All" : departmentLabels[key]}{" "}
                   <span className="font-sans text-sm text-alveus-green-600">
                     ({count})
                   </span>
