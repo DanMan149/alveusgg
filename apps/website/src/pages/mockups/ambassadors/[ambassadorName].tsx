@@ -1,6 +1,6 @@
 import type { GetStaticPaths, GetStaticProps, NextPage } from "next";
 import Image from "next/image";
-import { type ReactNode, useMemo, useRef, useState } from "react";
+import { Fragment, type ReactNode, useMemo, useState } from "react";
 
 import { getClassification } from "@alveusgg/data/build/ambassadors/classification";
 import ambassadors, {
@@ -8,7 +8,11 @@ import ambassadors, {
   type AmbassadorKey,
   isAmbassadorKey,
 } from "@alveusgg/data/build/ambassadors/core";
-import { getAmbassadorImages } from "@alveusgg/data/build/ambassadors/images";
+import {
+  getAmbassadorImages,
+  getAmbassadorMerchImage,
+} from "@alveusgg/data/build/ambassadors/images";
+import { getAmbassadorSounds } from "@alveusgg/data/build/ambassadors/sounds";
 import { getSpecies } from "@alveusgg/data/build/ambassadors/species";
 import { getAmbassadorEpisodes } from "@alveusgg/data/build/animal-quest";
 import enclosures from "@alveusgg/data/build/enclosures";
@@ -20,7 +24,9 @@ import { convertToSlug } from "@/utils/slugs";
 import { camelToKebab, kebabToCamel } from "@/utils/string-case";
 
 import AnimalQuest from "@/components/content/AnimalQuest";
+import Box from "@/components/content/Box";
 import Button from "@/components/content/Button";
+import Carousel from "@/components/content/Carousel";
 import Heading from "@/components/content/Heading";
 import Lightbox from "@/components/content/Lightbox";
 import Link from "@/components/content/Link";
@@ -28,13 +34,10 @@ import Meta from "@/components/content/Meta";
 import PartialDateDiff from "@/components/content/PartialDateDiff";
 import Section from "@/components/content/Section";
 import { YouTubeEmbed, YouTubePreview } from "@/components/content/YouTube";
-import ImagePlaceholder from "@/components/mockups/ImagePlaceholder";
 import MockupNotice from "@/components/mockups/MockupNotice";
 
-import IconArrowRight from "@/icons/IconArrowRight";
 import IconChevronLeft from "@/icons/IconChevronLeft";
 import IconChevronRight from "@/icons/IconChevronRight";
-import IconZoomIn from "@/icons/IconZoomIn";
 
 import { activeAmbassadors } from "@/pages/mockups/ambassadors";
 
@@ -57,46 +60,150 @@ export const getStaticProps: GetStaticProps<Props> = async (context) => {
 
 const mockupHref = (key: string) => `/mockups/ambassadors/${camelToKebab(key)}`;
 
-const stringifyLifespan = (
-  value: number | { min: number; max: number } | string,
-) =>
-  typeof value === "string"
-    ? value
-    : typeof value === "number"
-      ? `${value} years`
-      : `${value.min}-${value.max} years`;
+const stringifyLifespan = (value: number | { min: number; max: number }) =>
+  typeof value === "number" ? `${value}` : `${value.min}-${value.max}`;
 
-const StatRow = ({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) => (
-  <div className="grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-4">
-    <dt className="font-serif text-lg font-bold">{title}</dt>
-    <dd className="text-lg">{children}</dd>
-  </div>
-);
+/* Stats: same rows, order and compact layout as the live ambassador page */
 
-const Sub = ({ children }: { children: ReactNode }) => (
-  <span className="block text-base text-alveus-green-700 italic">
-    {children}
-  </span>
-);
+type Stat = { title: string; value: ReactNode };
+type Stats = (Stat | Stat[])[];
+
+const getStats = (ambassador: Ambassador): Stats => {
+  const species = getSpecies(ambassador.species);
+  const enclosure = enclosures[ambassador.enclosure];
+
+  return [
+    {
+      title: "Species",
+      value: (
+        <>
+          <p>{species.name}</p>
+          <p className="text-base text-alveus-green-700 italic">
+            {species.scientificName} (
+            <Link
+              href={`/ambassadors#classification:${convertToSlug(
+                getClassification(species.class),
+              )}`}
+            >
+              {getClassification(species.class)}
+            </Link>
+            )
+          </p>
+        </>
+      ),
+    },
+    {
+      title: "Conservation Status",
+      value: (
+        <p>
+          {species.iucn.id ? (
+            <Link
+              href={`https://www.iucnredlist.org/species/${species.iucn.id}/${species.iucn.assessment}`}
+              external
+            >
+              IUCN: {getIUCNStatus(species.iucn.status)}
+            </Link>
+          ) : (
+            <>IUCN: {getIUCNStatus(species.iucn.status)}</>
+          )}
+        </p>
+      ),
+    },
+    {
+      title: "Native To",
+      value: <p>{species.native}</p>,
+    },
+    {
+      title: "Species Lifespan",
+      value: (
+        <div className="flex flex-col flex-nowrap gap-x-4 gap-y-2 md:flex-row md:items-center lg:flex-col lg:items-start xl:flex-row xl:items-center">
+          <p>
+            Wild:{" "}
+            {typeof species.lifespan.wild === "string"
+              ? species.lifespan.wild
+              : `${stringifyLifespan(species.lifespan.wild)} years`}
+          </p>
+          <div className="hidden h-4 w-px bg-alveus-green opacity-75 md:block lg:hidden xl:block" />
+          <p>
+            Captivity:{" "}
+            {typeof species.lifespan.captivity === "string"
+              ? species.lifespan.captivity
+              : `${stringifyLifespan(species.lifespan.captivity)} years`}
+          </p>
+        </div>
+      ),
+    },
+    [
+      {
+        title: `Date of ${
+          { live: "Birth", egg: "Hatching", seed: "Planting" }[species.birth]
+        }`,
+        value: (
+          <>
+            <p>{formatPartialDateString(ambassador.birth)}</p>
+            {ambassador.birth && !ambassador.retired && (
+              <p className="text-base text-alveus-green-700 italic">
+                <PartialDateDiff date={ambassador.birth} suffix="old" />
+              </p>
+            )}
+          </>
+        ),
+      },
+      {
+        title: "Sex",
+        value: <p>{ambassador.sex || "Unknown"}</p>,
+      },
+      {
+        title: "Arrived at Alveus",
+        value: (
+          <>
+            <p>{formatPartialDateString(ambassador.arrival)}</p>
+            {ambassador.arrival && !ambassador.retired && (
+              <p className="text-base text-alveus-green-700 italic">
+                <PartialDateDiff date={ambassador.arrival} suffix="ago" />
+              </p>
+            )}
+          </>
+        ),
+      },
+      {
+        title: "Enclosure",
+        value: (
+          <p>
+            <Link
+              href={`/ambassadors#enclosures:${camelToKebab(
+                ambassador.enclosure,
+              )}`}
+            >
+              {enclosure.name}
+            </Link>
+          </p>
+        ),
+      },
+    ],
+  ];
+};
 
 const AmbassadorMockup = ({ ambassadorKey }: Props) => {
   const ambassador: Ambassador = ambassadors[ambassadorKey];
-  const species = getSpecies(ambassador.species);
   const enclosure = enclosures[ambassador.enclosure];
   const images = useMemo(
     () => getAmbassadorImages(ambassadorKey),
     [ambassadorKey],
   );
-  const episodes = useMemo(
-    () => getAmbassadorEpisodes(ambassadorKey, "featured") ?? [],
+  const merchImage = useMemo(
+    () => getAmbassadorMerchImage(ambassadorKey),
     [ambassadorKey],
   );
+  const animalQuest = useMemo(
+    () => getAmbassadorEpisodes(ambassadorKey),
+    [ambassadorKey],
+  );
+  const sounds = useMemo(
+    () => getAmbassadorSounds(ambassadorKey),
+    [ambassadorKey],
+  );
+  const stats = useMemo(() => getStats(ambassador), [ambassador]);
 
   // Previous/next in the same order as the live /ambassadors page
   const idx = activeAmbassadors.findIndex(([key]) => key === ambassadorKey);
@@ -109,12 +216,9 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
       key !== ambassadorKey && other.enclosure === ambassador.enclosure,
   );
 
-  /* Gallery */
-  const [photo, setPhoto] = useState(0);
-  const [lightboxOpen, setLightboxOpen] = useState<string>();
-  const stripRef = useRef<HTMLUListElement>(null);
-  const current = images[photo] ?? images[0];
-  const lightboxItems = useMemo(
+  /* Photo carousel and lightbox, as on the live page */
+  const [carouselLightboxOpen, setCarouselLightboxOpen] = useState<string>();
+  const carouselLightboxItems = useMemo(
     () =>
       images.reduce<Record<string, ReactNode>>(
         (acc, image) => ({
@@ -132,6 +236,9 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
                   alt={image.alt}
                   quality={90}
                   className="my-auto h-auto max-h-full w-full rounded-xl bg-alveus-green-800"
+                  style={{
+                    aspectRatio: `${image.src.width} / ${image.src.height}`,
+                  }}
                   draggable={false}
                 />
               </div>
@@ -142,24 +249,54 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
       ),
     [images],
   );
-  const scrollStrip = (direction: 1 | -1) => {
-    const strip = stripRef.current;
-    if (!strip) return;
-    strip.scrollBy({
-      left: direction * strip.clientWidth * 0.8,
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "auto"
-        : "smooth",
-    });
-  };
+  const carouselItems = useMemo(
+    () =>
+      images.reduce<Record<string, ReactNode>>(
+        (acc, image) => ({
+          ...acc,
+          [image.src.src]: (
+            <Link
+              href={image.src.src}
+              external
+              onClick={(e) => {
+                e.preventDefault();
+                setCarouselLightboxOpen(image.src.src);
+              }}
+              draggable={false}
+              className="group/trigger"
+              custom
+            >
+              <Image
+                src={image.src}
+                alt={image.alt}
+                width={300}
+                className="aspect-square h-auto w-full rounded-xl object-cover transition group-hover/trigger:scale-102 motion-reduce:transition-none"
+                style={{ objectPosition: image.position }}
+                draggable={false}
+              />
+            </Link>
+          ),
+        }),
+        {},
+      ),
+    [images],
+  );
 
-  /* Highlights */
+  /* Highlights: featured player plus strip, opening in the lightbox */
   const [clip, setClip] = useState(0);
-  const [playing, setPlaying] = useState(false);
+  const [clipsLightboxOpen, setClipsLightboxOpen] = useState<string>();
   const featuredClip = ambassador.clips[clip];
-
-  // Either { link } (on sale) or { soon } (announced), as on the live page
-  const plush = ambassador.plush;
+  const clipsLightboxItems = useMemo(
+    () =>
+      ambassador.clips.reduce<Record<string, ReactNode>>(
+        (acc, item) => ({
+          ...acc,
+          [item.id]: <YouTubeEmbed videoId={item.id} caption={item.caption} />,
+        }),
+        {},
+      ),
+    [ambassador.clips],
+  );
 
   return (
     <>
@@ -175,141 +312,77 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
 
       <MockupNotice>All details come from the ambassador data.</MockupNotice>
 
-      <Section className="pt-6">
-        <nav
-          aria-label="Ambassadors"
-          className="mb-8 flex items-stretch justify-between gap-4"
+      {/* Full-height sticky photo layout from the live ambassador page */}
+      <div className="relative">
+        <Section
+          className="min-h-[85vh] pt-64 lg:pt-0"
+          containerClassName="flex flex-wrap"
         >
-          {[
-            { entry: prev, label: "Previous", align: "left" },
-            { entry: next, label: "Next", align: "right" },
-          ].map(({ entry: [key, other], label, align }) => {
-            const thumb = getAmbassadorImages(key)[0];
-            return (
-              <Link
-                key={label}
-                href={mockupHref(key)}
-                custom
-                className={classes(
-                  "flex min-w-0 items-center gap-3 rounded-xl border border-alveus-green-200 bg-alveus-tan-50 p-2 transition-colors hover:border-alveus-green-500",
-                  align === "right" && "flex-row-reverse text-right",
-                )}
-              >
-                {align === "left" ? (
-                  <IconChevronLeft className="size-5 shrink-0" />
-                ) : (
-                  <IconChevronRight className="size-5 shrink-0" />
-                )}
-                <Image
-                  src={thumb.src}
-                  alt=""
-                  width={96}
-                  className="size-10 shrink-0 rounded-lg object-cover"
-                  style={{ objectPosition: thumb.position }}
-                />
-                <span className="min-w-0">
-                  <span className="block text-sm text-alveus-green-700">
-                    {label}
-                  </span>
-                  <span className="block truncate font-serif text-lg font-bold">
-                    {other.name}
-                  </span>
-                </span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="grid items-start gap-8 lg:grid-cols-2">
-          {/* Gallery */}
-          <div className="min-w-0">
-            <button
-              type="button"
-              onClick={() => setLightboxOpen(current.src.src)}
-              className="group relative block w-full overflow-hidden rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700"
-            >
-              <Image
-                src={current.src}
-                alt={current.alt}
-                placeholder="blur"
-                width={900}
-                priority
-                className="aspect-square h-auto w-full object-cover max-lg:aspect-4/3"
-                style={{ objectPosition: current.position }}
-              />
-              <span className="absolute right-3 bottom-3 inline-flex items-center gap-2 rounded-md bg-alveus-green-900 px-3 py-1.5 text-sm text-alveus-tan">
-                <IconZoomIn className="size-4" />
-                {images.length > 1
-                  ? `View all ${images.length} photos`
-                  : "Enlarge photo"}
-              </span>
-            </button>
-
-            {images.length > 1 && (
-              <div className="mt-3 flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => scrollStrip(-1)}
-                  className="shrink-0 rounded-full p-2 hover:bg-alveus-green-100"
-                >
-                  <IconChevronLeft className="size-5" />
-                  <span className="sr-only">Scroll photos left</span>
-                </button>
-                <ul
-                  ref={stripRef}
-                  className="scrollbar-none flex grow snap-x gap-2 overflow-x-auto p-1"
-                >
-                  {images.map((image, imageIdx) => (
-                    <li
-                      key={image.src.src}
-                      className="w-1/4 shrink-0 snap-start"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setPhoto(imageIdx)}
-                        aria-pressed={photo === imageIdx}
-                        className={classes(
-                          "block w-full overflow-hidden rounded-lg ring-offset-2 ring-offset-alveus-tan focus-visible:outline-2 focus-visible:outline-alveus-green-700",
-                          photo === imageIdx
-                            ? "ring-3 ring-alveus-green-700"
-                            : "opacity-75 hover:opacity-100",
-                        )}
-                      >
-                        <Image
-                          src={image.src}
-                          alt={`Photo ${imageIdx + 1}: ${image.alt}`}
-                          width={200}
-                          className="aspect-square h-auto w-full object-cover"
-                          style={{ objectPosition: image.position }}
-                        />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  onClick={() => scrollStrip(1)}
-                  className="shrink-0 rounded-full p-2 hover:bg-alveus-green-100"
-                >
-                  <IconChevronRight className="size-5" />
-                  <span className="sr-only">Scroll photos right</span>
-                </button>
-              </div>
-            )}
-
-            <Lightbox
-              open={lightboxOpen}
-              onClose={() => setLightboxOpen(undefined)}
-              items={lightboxItems}
+          <div className="absolute inset-x-0 top-0 h-64 w-full lg:bottom-0 lg:h-full lg:w-1/2">
+            <Image
+              src={images[0].src}
+              alt={images[0].alt}
+              placeholder="blur"
+              priority
+              className="absolute inset-x-0 top-0 size-full object-cover lg:sticky lg:h-screen lg:max-h-full"
+              style={{ objectPosition: images[0].position }}
             />
           </div>
 
-          {/* Details */}
-          <div className="min-w-0">
-            <Heading className="mt-0 text-5xl">{ambassador.name}</Heading>
+          <div className="basis-full lg:basis-1/2" />
+
+          <div className="flex basis-full flex-col py-4 lg:max-w-1/2 lg:basis-1/2 lg:px-8 lg:pt-8">
+            <nav
+              aria-label="Ambassadors"
+              className="mb-4 flex items-stretch justify-between gap-4"
+            >
+              {[
+                { entry: prev, label: "Previous", align: "left" },
+                { entry: next, label: "Next", align: "right" },
+              ].map(({ entry: [key, other], label, align }) => {
+                const thumb = getAmbassadorImages(key)[0];
+                return (
+                  <Link
+                    key={label}
+                    href={mockupHref(key)}
+                    custom
+                    className={classes(
+                      "flex min-w-0 items-center gap-3 rounded-xl border border-alveus-green-200 bg-alveus-tan-50 p-2 transition-colors hover:border-alveus-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700",
+                      align === "right" && "flex-row-reverse text-right",
+                    )}
+                  >
+                    {align === "left" ? (
+                      <IconChevronLeft className="size-5 shrink-0" />
+                    ) : (
+                      <IconChevronRight className="size-5 shrink-0" />
+                    )}
+                    <Image
+                      src={thumb.src}
+                      alt=""
+                      width={96}
+                      className="size-10 shrink-0 rounded-lg object-cover"
+                      style={{ objectPosition: thumb.position }}
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm text-alveus-green-700">
+                        {label}
+                      </span>
+                      <span className="block truncate font-serif text-lg font-bold">
+                        {other.name}
+                      </span>
+                    </span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <Heading className="text-5xl">{ambassador.name}</Heading>
             {!!ambassador.alternate.length && (
               <p className="-mt-1 mb-2 text-lg text-alveus-green-700 italic">
-                also: {ambassador.alternate.join("; ")}
+                also:{" "}
+                <span className="text-xl">
+                  {ambassador.alternate.join("; ")}
+                </span>
               </p>
             )}
 
@@ -321,93 +394,168 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
                 ))}
             </div>
 
-            <dl className="mt-6 divide-y divide-alveus-green-200 border-y border-alveus-green-200">
-              <StatRow title="Species">
-                {species.name}
-                <Sub>
-                  {species.scientificName} (
-                  <Link
-                    href={`/ambassadors#classification:${convertToSlug(getClassification(species.class))}`}
+            <dl className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-auto-2 lg:grid-cols-auto-2">
+              {stats.map((item) => {
+                const nested = Array.isArray(item);
+                const items = nested ? item : [item];
+                return (
+                  <div
+                    key={items.map((i) => i.title).join(",")}
+                    className={classes(
+                      "contents",
+                      nested &&
+                        "col-span-full grid-cols-auto-4 gap-4 md:grid lg:contents xl:grid",
+                    )}
                   >
-                    {getClassification(species.class)}
-                  </Link>
-                  )
-                </Sub>
-              </StatRow>
-              <StatRow title="Conservation Status">
-                {species.iucn.id ? (
-                  <Link
-                    href={`https://www.iucnredlist.org/species/${species.iucn.id}/${species.iucn.assessment}`}
-                    external
-                  >
-                    IUCN: {getIUCNStatus(species.iucn.status)}
-                  </Link>
-                ) : (
-                  <>IUCN: {getIUCNStatus(species.iucn.status)}</>
-                )}
-              </StatRow>
-              <StatRow title="Native To">{species.native}</StatRow>
-              <StatRow title="Species Lifespan">
-                Wild: {stringifyLifespan(species.lifespan.wild)}
-                <Sub>
-                  Captivity: {stringifyLifespan(species.lifespan.captivity)}
-                </Sub>
-              </StatRow>
-              <StatRow
-                title={`Date of ${{ live: "Birth", egg: "Hatching", seed: "Planting" }[species.birth]}`}
-              >
-                {formatPartialDateString(ambassador.birth)}
-                {ambassador.birth && (
-                  <Sub>
-                    <PartialDateDiff date={ambassador.birth} suffix="old" />
-                  </Sub>
-                )}
-              </StatRow>
-              <StatRow title="Sex">{ambassador.sex || "Unknown"}</StatRow>
-              <StatRow title="Arrived at Alveus">
-                {formatPartialDateString(ambassador.arrival)}
-                {ambassador.arrival && (
-                  <Sub>
-                    <PartialDateDiff date={ambassador.arrival} suffix="ago" />
-                  </Sub>
-                )}
-              </StatRow>
-              <StatRow title="Enclosure">
-                <Link
-                  href={`/ambassadors#enclosures:${camelToKebab(ambassador.enclosure)}`}
-                >
-                  {enclosure.name}
-                </Link>
-              </StatRow>
+                    {items.map(({ title, value }, itemIdx) => (
+                      <Fragment key={title}>
+                        <div
+                          className={classes(
+                            "col-span-full h-px bg-alveus-green opacity-10",
+                            nested &&
+                              itemIdx % 2 !== 0 &&
+                              "md:hidden lg:block xl:hidden",
+                          )}
+                        />
+                        <dt className="self-center text-2xl font-bold">
+                          {title}
+                        </dt>
+                        <dd className="self-center text-xl text-balance">
+                          {value}
+                        </dd>
+                      </Fragment>
+                    ))}
+                  </div>
+                );
+              })}
             </dl>
 
-            {ambassador.fact && (
-              <div className="mt-6 rounded-xl bg-alveus-green p-5 text-alveus-tan">
-                <Heading level={2} className="my-0 text-2xl">
+            {!!sounds?.length && (
+              <dl className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-auto-2 lg:grid-cols-auto-2">
+                <div className="col-span-full h-px bg-alveus-green opacity-10" />
+                <dt className="self-center text-2xl font-bold">Sounds</dt>
+                <dd className="self-center">
+                  <div className="flex flex-wrap gap-4">
+                    {sounds.map(({ src, caption }) => (
+                      <div
+                        key={src}
+                        className="flex flex-col items-center gap-1"
+                      >
+                        <audio controls src={src} preload="none" />
+                        <p className="text-center text-base text-alveus-green-700">
+                          {caption}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </dd>
+              </dl>
+            )}
+
+            {/* Did you know? with Animal Quest, in the same place as the live page */}
+            {ambassador.fact ? (
+              <Box dark className="my-6 flex flex-col gap-2 p-4">
+                <Heading level={2} id="did-you-know" className="my-0 text-2xl">
                   Did you know?
                 </Heading>
-                {ambassador.fact.split("\n\n").map((text) => (
-                  <p key={text} className="mt-2 text-lg">
-                    {text}
+
+                {ambassador.fact.split("\n\n").map((fact) => (
+                  <p key={fact} className="text-lg">
+                    {fact}
                   </p>
                 ))}
-              </div>
+
+                {animalQuest?.map((aq) => (
+                  <AnimalQuest
+                    key={aq.episode}
+                    episode={aq}
+                    ambassador={ambassadorKey}
+                    className="mt-2 hover:translate-y-1"
+                  />
+                ))}
+              </Box>
+            ) : (
+              animalQuest?.map((aq) => (
+                <AnimalQuest
+                  key={aq.episode}
+                  episode={aq}
+                  ambassador={ambassadorKey}
+                  className="my-6"
+                />
+              ))
             )}
+
+            <Carousel
+              items={carouselItems}
+              auto={null}
+              className="my-6"
+              itemClassName="basis-1/2 md:basis-1/3 lg:basis-1/2 xl:basis-1/3 p-2 2xl:p-4"
+            />
+
+            <Lightbox
+              open={carouselLightboxOpen}
+              onClose={() => setCarouselLightboxOpen(undefined)}
+              items={carouselLightboxItems}
+            />
+
+            {/* Plush, only where the data has one (on sale or announced) */}
+            {ambassador.plush &&
+              merchImage &&
+              ("link" in ambassador.plush ? (
+                <Link
+                  href={ambassador.plush.link}
+                  className="group mx-auto my-6"
+                  external
+                  custom
+                >
+                  <Image
+                    src={merchImage.src}
+                    width={512}
+                    alt={`${ambassador.name} Plush`}
+                    className="h-auto w-full max-w-lg rounded-2xl bg-alveus-tan transition group-hover:scale-102 motion-reduce:transition-none"
+                  />
+                </Link>
+              ) : (
+                <div className="relative mx-auto my-6 overflow-hidden rounded-2xl">
+                  <Image
+                    src={merchImage.src}
+                    width={512}
+                    alt={`${ambassador.name} Plush`}
+                    className="h-auto w-full max-w-lg bg-alveus-tan"
+                  />
+                  {/* Same note as the live page, shown at all times so it also works on touch */}
+                  <div className="absolute inset-x-0 bottom-0 flex flex-col items-center justify-center gap-1 border-t border-alveus-green-200 bg-alveus-tan/90 p-4 text-center font-bold text-alveus-green-800">
+                    <p className="text-2xl md:text-3xl">Coming Soon</p>
+                    <p className="text-lg md:text-2xl">
+                      {ambassador.plush.soon}
+                    </p>
+                  </div>
+                </div>
+              ))}
           </div>
-        </div>
-      </Section>
+        </Section>
+      </div>
 
       {others.length > 0 && (
         <Section className="bg-alveus-green-100 py-12">
-          <Heading level={2} className="mt-0 mb-6">
-            Meet others in the {enclosure.name}
-          </Heading>
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <Heading level={2} className="my-0">
+              Meet others in the {enclosure.name}
+            </Heading>
+            <Button href="/ambassadors#enclosures">
+              View all ambassadors by enclosure
+            </Button>
+          </div>
           <ul className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
             {others.map(([key, other]) => {
               const image = getAmbassadorImages(key)[0];
               return (
                 <li key={key}>
-                  <Link href={mockupHref(key)} custom className="group block">
+                  <Link
+                    href={mockupHref(key)}
+                    custom
+                    className="group block rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-alveus-green-700"
+                  >
                     <Image
                       src={image.src}
                       alt={image.alt}
@@ -431,7 +579,11 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
 
       {featuredClip && (
         <Section dark className="bg-alveus-green-800">
-          <Heading level={2} className="mt-0 mb-8 text-center text-4xl">
+          <Heading
+            level={2}
+            id="highlights"
+            className="mt-0 mb-8 text-center text-4xl"
+          >
             {ambassador.name}&apos;s Highlights
           </Heading>
 
@@ -444,30 +596,24 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
             )}
           >
             <div>
-              {playing ? (
-                <YouTubeEmbed
+              {/* Same lightbox trigger as the live highlights */}
+              <Link
+                href={`https://www.youtube.com/watch?v=${featuredClip.id}`}
+                external
+                custom
+                onClick={(e) => {
+                  e.preventDefault();
+                  setClipsLightboxOpen(featuredClip.id);
+                }}
+                className="group/trigger block w-full overflow-hidden rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-tan"
+              >
+                <YouTubePreview
                   videoId={featuredClip.id}
-                  videoParams={{ autoplay: "1" }}
-                  caption={featuredClip.caption}
+                  alt={`Play ${featuredClip.caption}`}
+                  className="aspect-video h-auto w-full object-cover"
                 />
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setPlaying(true)}
-                    className="group/trigger block w-full overflow-hidden rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-tan"
-                  >
-                    <YouTubePreview
-                      videoId={featuredClip.id}
-                      alt={`Play ${featuredClip.caption}`}
-                      className="aspect-video h-auto w-full object-cover"
-                    />
-                  </button>
-                  <p className="mt-3 text-center text-xl">
-                    {featuredClip.caption}
-                  </p>
-                </>
-              )}
+              </Link>
+              <p className="mt-3 text-center text-xl">{featuredClip.caption}</p>
             </div>
 
             {ambassador.clips.length > 1 && (
@@ -476,10 +622,7 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
                   <li key={item.id}>
                     <button
                       type="button"
-                      onClick={() => {
-                        setClip(clipIdx);
-                        setPlaying(false);
-                      }}
+                      onClick={() => setClip(clipIdx)}
                       aria-current={clip === clipIdx ? "true" : undefined}
                       className={classes(
                         "grid w-full grid-cols-[7rem_minmax(0,1fr)] items-center gap-3 rounded-lg border p-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-alveus-tan",
@@ -508,98 +651,19 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
               </ul>
             )}
           </div>
+
+          <Lightbox
+            open={clipsLightboxOpen}
+            onClose={() => setClipsLightboxOpen(undefined)}
+            items={clipsLightboxItems}
+          />
         </Section>
       )}
-
-      <Section className="grow">
-        <div
-          className={classes(
-            "grid items-start gap-8",
-            episodes.length > 0 && "lg:grid-cols-2",
-          )}
-        >
-          {plush ? (
-            <div className="flex flex-col overflow-hidden rounded-2xl border border-alveus-green-200 bg-alveus-tan-50">
-              <div className="relative">
-                <ImagePlaceholder
-                  label="Image placeholder: plush photo"
-                  className="aspect-16/10 rounded-none border-0 border-b-2"
-                />
-                {"soon" in plush && (
-                  // Same note as the live page, shown at all times so it also works on touch
-                  <div className="absolute inset-x-0 bottom-0 flex flex-col items-center justify-center gap-1 border-t border-alveus-green-200 bg-alveus-tan/90 p-4 text-center font-bold text-alveus-green-800">
-                    <p className="text-2xl md:text-3xl">Coming Soon</p>
-                    <p className="text-lg md:text-2xl">{plush.soon}</p>
-                  </div>
-                )}
-              </div>
-              <div className="flex flex-col gap-2 p-5">
-                <Heading level={2} className="my-0 text-3xl">
-                  {ambassador.name} Plush
-                </Heading>
-                <p>
-                  Or, have your very own ambassador in your home with our soft
-                  and cuddly plushies!
-                </p>
-                {"link" in plush && (
-                  <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
-                    <p className="font-serif text-3xl font-bold">
-                      $29.99 <span className="text-lg font-normal">USD</span>
-                    </p>
-                    <Button href={plush.link} external filled>
-                      Buy the plush
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col overflow-hidden rounded-2xl border border-alveus-green-200 bg-alveus-tan-50">
-              <Image
-                src={(images[1] ?? images[0]).src}
-                alt={(images[1] ?? images[0]).alt}
-                width={800}
-                className="aspect-16/10 h-auto w-full object-cover"
-                style={{ objectPosition: (images[1] ?? images[0]).position }}
-              />
-              <div className="p-5">
-                <Heading level={2} className="my-0 text-3xl">
-                  {ambassador.name}
-                </Heading>
-                <p className="text-alveus-green-700">{species.name}</p>
-              </div>
-            </div>
-          )}
-
-          {episodes.length > 0 && (
-            <div className="flex flex-col gap-4">
-              <Heading level={2} className="my-0 text-3xl">
-                Animal Quest
-              </Heading>
-              {episodes.map((episode) => (
-                <AnimalQuest
-                  key={episode.episode}
-                  episode={episode}
-                  ambassador={ambassadorKey}
-                  heading={3}
-                />
-              ))}
-              <Link
-                href="/animal-quest"
-                className="inline-flex items-center gap-1"
-              >
-                View All Episodes
-                <IconArrowRight className="size-4" />
-              </Link>
-            </div>
-          )}
-        </div>
-      </Section>
     </>
   );
 };
 
-// Keyed so gallery and highlight state resets when moving between ambassadors
+// Keyed so carousel and highlight state resets when moving between ambassadors
 const AmbassadorMockupPage: NextPage<Props> = ({ ambassadorKey }) => (
   <AmbassadorMockup key={ambassadorKey} ambassadorKey={ambassadorKey} />
 );

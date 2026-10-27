@@ -31,6 +31,12 @@ export const factSummary = (fact: string) => {
   return match ? match[0] : firstParagraph;
 };
 
+// Base hover/focus state for every card, from the live grid's
+// ambassadorImageHover (scale, brightness, contrast, saturation) minus the
+// hover shadow, plus the same on keyboard focus. Fact cards add the overlay.
+const cardImageHover =
+  "transition group-hover:scale-102 group-hover:brightness-105 group-hover:contrast-115 group-hover:saturate-110 group-focus-visible:scale-102 group-focus-visible:brightness-105 group-focus-visible:contrast-115 group-focus-visible:saturate-110 motion-reduce:transition-none motion-reduce:group-hover:scale-100 motion-reduce:group-focus-visible:scale-100";
+
 const AmbassadorsMockupPage: NextPage = () => {
   const pointerType = useRef<string>("mouse");
   const [armed, setArmed] = useState<string>();
@@ -113,7 +119,10 @@ const AmbassadorsMockupPage: NextPage = () => {
                       alt={image.alt}
                       placeholder="blur"
                       width={700}
-                      className="aspect-4/3 h-auto w-full object-cover"
+                      className={classes(
+                        "aspect-4/3 h-auto w-full object-cover",
+                        cardImageHover,
+                      )}
                       style={{ objectPosition: image.position }}
                     />
                     {fact && (
@@ -135,11 +144,11 @@ const AmbassadorsMockupPage: NextPage = () => {
                   </div>
                   <Heading
                     level={2}
-                    className="mt-2 mb-0 text-center transition-colors group-hover:text-alveus-green-700"
+                    className="mt-2 mb-0 text-center transition-colors group-hover:text-alveus-green-700 group-focus-visible:text-alveus-green-700"
                   >
                     {ambassador.name}
                   </Heading>
-                  <p className="text-center text-xl text-alveus-green-700">
+                  <p className="text-center text-xl text-alveus-green-700 transition-colors group-hover:text-alveus-green-400 group-focus-visible:text-alveus-green-400">
                     {species.name}
                   </p>
                 </Link>
