@@ -235,9 +235,10 @@ const HistoryCard = ({
 };
 
 const HistoryView = () => {
-  // The first (earliest) year is open, the rest start collapsed
+  // 2020 and 2021 are open, the rest start collapsed
   const [open, setOpen] = useState<Record<string, boolean>>({
-    [historyYears[0]!]: true,
+    "2020": true,
+    "2021": true,
   });
   const [visible, setVisible] = useState<Record<Category, boolean>>({
     build: true,
@@ -248,12 +249,8 @@ const HistoryView = () => {
 
   return (
     <>
-      <Section dark className="py-12">
-        <Heading className="my-0">Alveus&apos; History</Heading>
-      </Section>
-
       {/* First block of the live history, copied from the about page */}
-      <Section dark className="border-t border-alveus-green-700">
+      <Section dark>
         <div className="flex flex-wrap-reverse items-center">
           <div className="basis-full pt-8 md:basis-1/2 md:pt-0 md:pr-8">
             <MayaImage className="mx-auto h-auto w-full max-w-lg lg:mr-0" />
@@ -278,42 +275,46 @@ const HistoryView = () => {
       </Section>
 
       <Section className="grow">
-        <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
-          <div
-            role="group"
-            aria-label="Filter by type"
-            className="flex flex-wrap items-center gap-2"
-          >
-            {(Object.keys(categories) as Category[]).map((key) => {
-              const { label, icon: Icon } = categories[key];
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  aria-pressed={visible[key]}
-                  onClick={() =>
-                    setVisible((prev) => ({ ...prev, [key]: !prev[key] }))
-                  }
-                  className={classes(
-                    "inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700 motion-reduce:transition-none",
-                    visible[key]
-                      ? "border-alveus-green bg-alveus-green text-alveus-tan"
-                      : "border-alveus-green-300 bg-transparent text-alveus-green-700 line-through",
-                  )}
-                >
-                  <Icon size={16} />
-                  {label}
-                </button>
-              );
-            })}
+        {/* Heading on the left, filters and Collapse all on the right */}
+        <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <Heading className="my-0">Alveus&apos; History</Heading>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <div
+              role="group"
+              aria-label="Filter by type"
+              className="flex flex-wrap items-center gap-2"
+            >
+              {(Object.keys(categories) as Category[]).map((key) => {
+                const { label, icon: Icon } = categories[key];
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={visible[key]}
+                    onClick={() =>
+                      setVisible((prev) => ({ ...prev, [key]: !prev[key] }))
+                    }
+                    className={classes(
+                      "inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700 motion-reduce:transition-none",
+                      visible[key]
+                        ? "border-alveus-green bg-alveus-green text-alveus-tan"
+                        : "border-alveus-green-300 bg-transparent text-alveus-green-700 line-through",
+                    )}
+                  >
+                    <Icon size={16} />
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => setOpen({})}
+              className="text-red-600 underline transition-colors hover:text-blue-600"
+            >
+              Collapse all
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setOpen({})}
-            className="text-red-600 underline transition-colors hover:text-blue-600"
-          >
-            Collapse all
-          </button>
         </div>
 
         <div className="relative mx-auto max-w-6xl">
