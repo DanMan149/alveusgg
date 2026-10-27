@@ -536,47 +536,6 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
         </Section>
       </div>
 
-      {others.length > 0 && (
-        <Section className="bg-alveus-green-100 py-12">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-            <Heading level={2} className="my-0">
-              Meet others in the {enclosure.name}
-            </Heading>
-            <Button href="/ambassadors#enclosures">
-              View all ambassadors by enclosure
-            </Button>
-          </div>
-          <ul className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
-            {others.map(([key, other]) => {
-              const image = getAmbassadorImages(key)[0];
-              return (
-                <li key={key}>
-                  <Link
-                    href={mockupHref(key)}
-                    custom
-                    className="group block rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-alveus-green-700"
-                  >
-                    <Image
-                      src={image.src}
-                      alt={image.alt}
-                      width={300}
-                      className="aspect-square h-auto w-full rounded-xl object-cover"
-                      style={{ objectPosition: image.position }}
-                    />
-                    <span className="mt-2 block font-serif text-xl font-bold group-hover:text-alveus-green-700">
-                      {other.name}
-                    </span>
-                    <span className="block text-alveus-green-700">
-                      {getSpecies(other.species).name}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </Section>
-      )}
-
       {featuredClip && (
         <Section dark className="bg-alveus-green-800">
           <Heading
@@ -657,6 +616,45 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
             onClose={() => setClipsLightboxOpen(undefined)}
             items={clipsLightboxItems}
           />
+        </Section>
+      )}
+
+      {/* Compact row, hidden when the ambassador lives alone */}
+      {others.length > 0 && (
+        <Section className="bg-alveus-green-100 py-8">
+          <Heading level={2} className="mt-0 mb-4 text-2xl">
+            Meet others in the {enclosure.name}
+          </Heading>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+            <ul className="flex flex-wrap items-center gap-x-5 gap-y-3">
+              {others.map(([key, other]) => {
+                const image = getAmbassadorImages(key)[0];
+                return (
+                  <li key={key}>
+                    <Link
+                      href={mockupHref(key)}
+                      custom
+                      className="group flex items-center gap-2 rounded-full pr-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700"
+                    >
+                      <Image
+                        src={image.src}
+                        alt=""
+                        width={96}
+                        className="size-12 shrink-0 rounded-full object-cover"
+                        style={{ objectPosition: image.position }}
+                      />
+                      <span className="font-serif text-lg font-bold transition-colors group-hover:text-alveus-green-700 motion-reduce:transition-none">
+                        {other.name}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+            <Button href="/ambassadors#enclosures" className="text-base">
+              View all ambassadors by enclosure
+            </Button>
+          </div>
         </Section>
       )}
     </>
