@@ -144,8 +144,8 @@ const InPageNav = ({
       ref={navRef}
       aria-label={label}
       className={classes(
-        // Same translucent, blurred background as the live SubNav
-        "sticky inset-x-0 top-0 z-20 border-b border-alveus-green-200 bg-alveus-green-100/50 text-alveus-green-900 backdrop-blur-2xl",
+        // Same translucent, blurred background and font as the live SubNav
+        "sticky inset-x-0 top-0 z-20 border-b border-alveus-green-200 bg-alveus-green-100/50 font-sans text-xl font-bold text-alveus-green-900 backdrop-blur-2xl",
         className,
       )}
     >
@@ -169,7 +169,7 @@ const InPageNav = ({
                   onClick={(e) => jump(e, item.id)}
                   aria-current={active === item.id ? "location" : undefined}
                   className={classes(
-                    "block border-b-3 px-3 pt-3 pb-2.5 font-serif text-lg whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-alveus-green-700 motion-reduce:transition-none",
+                    "block border-b-3 px-3 pt-3 pb-2.5 whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-alveus-green-700 motion-reduce:transition-none",
                     active === item.id
                       ? "border-alveus-green-700"
                       : "border-transparent hover:border-alveus-green-300",
@@ -185,7 +185,8 @@ const InPageNav = ({
         {children && (
           <div
             className={classes(
-              "flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 py-2",
+              // Controls keep the body text style, not the nav link font
+              "flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 py-2 text-base font-normal",
               controlsClassName,
             )}
           >
