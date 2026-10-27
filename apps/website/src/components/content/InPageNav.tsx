@@ -144,7 +144,8 @@ const InPageNav = ({
       ref={navRef}
       aria-label={label}
       className={classes(
-        "sticky inset-x-0 top-0 z-20 border-b border-alveus-green-200 bg-alveus-green-50 text-alveus-green-900",
+        // Same translucent, blurred background as the live SubNav
+        "sticky inset-x-0 top-0 z-20 border-b border-alveus-green-200 bg-alveus-green-100/50 text-alveus-green-900 backdrop-blur-2xl",
         className,
       )}
     >

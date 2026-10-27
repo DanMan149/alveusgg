@@ -1,5 +1,5 @@
-import { type NextPage } from "next";
-import Image, { type StaticImageData } from "next/image";
+import { type GetStaticProps, type NextPage } from "next";
+import Image from "next/image";
 import { type ReactNode, useMemo, useState } from "react";
 
 import ambassadors, {
@@ -16,6 +16,7 @@ import { typeSafeObjectEntries } from "@/utils/helpers";
 import { camelToKebab } from "@/utils/string-case";
 
 import Button from "@/components/content/Button";
+import Donate from "@/components/content/Donate";
 import Heading from "@/components/content/Heading";
 import InPageNav from "@/components/content/InPageNav";
 import Link from "@/components/content/Link";
@@ -25,13 +26,7 @@ import SubNav from "@/components/content/SubNav";
 import MockupNotice from "@/components/mockups/MockupNotice";
 import { underlineTabClassName } from "@/components/mockups/ViewTabs";
 
-import IconAmazon from "@/icons/IconAmazon";
 import IconArrowRight from "@/icons/IconArrowRight";
-import IconBox from "@/icons/IconBox";
-import IconDollar from "@/icons/IconDollar";
-
-import usfwsMexicanWolfFieldImage from "@/assets/institute/usfws-mexican-wolf-field.jpg";
-import usfwsRedWolfImage from "@/assets/institute/usfws-red-wolf.jpg";
 
 /* ---------- 1. In-page nav ---------- */
 
@@ -86,48 +81,28 @@ const getBirthdayAmbassador = (today: Date) => {
   return withBirthdays[0];
 };
 
-type SpeciesCard = {
-  key: string;
-  name: string;
-  image: { src: StaticImageData; alt: string };
-  text: ReactNode;
-  href: string;
-  cta: string;
-};
-
-// Copy from the Wolves component on the institute pages
-const wolfSpecies: SpeciesCard[] = [
-  {
-    key: "red-wolf",
-    name: "Red wolf",
-    image: {
-      src: usfwsRedWolfImage,
-      alt: "Red wolf, B. Bartel/USFWS, Public Domain, https://www.fws.gov/media/red-wolf-7",
-    },
-    text: "21 Red wolves exist in the wild today.",
-    href: "/institute",
-    cta: "Learn More About the Institute",
-  },
-  {
-    key: "mexican-gray-wolf",
-    name: "Mexican Gray wolf",
-    image: {
-      src: usfwsMexicanWolfFieldImage,
-      alt: "Mexican wolf in field, New Mexico Department of Game and Fish, Public Domain, https://www.fws.gov/media/mexican-wolf-field",
-    },
-    text: "319 Mexican Gray wolves exist in the wild today.",
-    href: "/institute",
-    cta: "Learn More About the Institute",
-  },
-];
-
-type Mode = "default" | "donkey" | "wolf" | "birthday";
+type Mode = "random" | "birthday";
 
 const modes: Record<Mode, string> = {
-  default: "Default",
-  donkey: "Donkey Day",
-  wolf: "Wolf Week",
+  random: "Random",
   birthday: "Birthday",
+};
+
+// Random picks happen at build time, refreshed with the same revalidate
+// window as the home page's YouTube section
+type Props = { randomAmbassadors: AmbassadorKey[] };
+
+export const getStaticProps: GetStaticProps<Props> = () => {
+  const pool = [...homepageAmbassadors];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j]!, pool[i]!];
+  }
+
+  return {
+    props: { randomAmbassadors: pool.slice(0, 4) },
+    revalidate: 1800, // revalidate after 30 minutes
+  };
 };
 
 const AmbassadorCard = ({
@@ -136,7 +111,7 @@ const AmbassadorCard = ({
   badge,
 }: {
   ambassadorKey: AmbassadorKey;
-  size?: "default" | "large" | "wide";
+  size?: "default" | "wide";
   badge?: ReactNode;
 }) => {
   const ambassador = ambassadors[ambassadorKey];
@@ -159,7 +134,6 @@ const AmbassadorCard = ({
           className={classes(
             "h-auto w-full rounded-xl object-cover",
             size === "default" && "aspect-square",
-            size === "large" && "aspect-4/3",
             size === "wide" && "aspect-[2.08/1]",
           )}
           style={{ objectPosition: image.position }}
@@ -191,28 +165,6 @@ const AmbassadorCard = ({
   );
 };
 
-const WolfSpeciesCard = ({ card }: { card: SpeciesCard }) => (
-  <div className="flex min-w-0 flex-col gap-2">
-    <Image
-      src={card.image.src}
-      alt={card.image.alt}
-      width={400}
-      className="aspect-square h-auto w-full rounded-xl object-cover"
-    />
-    <p className="text-sm text-alveus-green-700">
-      Alveus Research & Recovery Institute
-    </p>
-    <Heading level={3} className="my-0 text-2xl">
-      {card.name}
-    </Heading>
-    <p>{card.text}</p>
-    <Link href={card.href} className="mt-auto inline-flex items-center gap-1">
-      {card.cta}
-      <IconArrowRight className="size-4" />
-    </Link>
-  </div>
-);
-
 const Banner = ({
   tag,
   title,
@@ -233,42 +185,16 @@ const Banner = ({
   </div>
 );
 
-const FeaturedAmbassadors = () => {
-  const [mode, setMode] = useState<Mode>("default");
+const FeaturedAmbassadors = ({
+  randomAmbassadors,
+}: {
+  randomAmbassadors: AmbassadorKey[];
+}) => {
+  const [mode, setMode] = useState<Mode>("random");
   const birthday = useMemo(() => getBirthdayAmbassador(new Date()), []);
 
   let content: ReactNode;
   switch (mode) {
-    case "donkey":
-      content = (
-        <>
-          <Banner tag="Featured today" title="Donkey Day" />
-          <div className="grid gap-6 sm:grid-cols-2">
-            <AmbassadorCard ambassadorKey="serrano" size="large" />
-            <AmbassadorCard ambassadorKey="jalapeno" size="large" />
-          </div>
-        </>
-      );
-      break;
-
-    case "wolf":
-      content = (
-        <>
-          <Banner tag="Featured this week" title="National Wolf Awareness Week">
-            <Button href="/institute/pixels/two" className="shrink-0">
-              Donate to Support the Institute
-            </Button>
-          </Banner>
-          <div className="grid grid-cols-2 gap-6 lg:grid-cols-3">
-            <AmbassadorCard ambassadorKey="akela" />
-            {wolfSpecies.map((card) => (
-              <WolfSpeciesCard key={card.key} card={card} />
-            ))}
-          </div>
-        </>
-      );
-      break;
-
     case "birthday":
       content = birthday ? (
         <>
@@ -299,8 +225,13 @@ const FeaturedAmbassadors = () => {
 
     default:
       content = (
-        <div className="grid grid-cols-2 items-start gap-6 lg:grid-cols-4">
-          {homepageAmbassadors.slice(0, 4).map((key) => (
+        <div
+          className={classes(
+            "grid grid-cols-2 items-start gap-6",
+            randomAmbassadors.length < 4 ? "lg:grid-cols-3" : "lg:grid-cols-4",
+          )}
+        >
+          {randomAmbassadors.map((key) => (
             <AmbassadorCard key={key} ambassadorKey={key} />
           ))}
         </div>
@@ -362,41 +293,30 @@ const FeaturedAmbassadors = () => {
 
 /* ---------- 3. How to Help ---------- */
 
-// Titles from the home page, descriptions from the donate page cards
+// The donate page's button cards (components/content/Donate.tsx), with the
+// home page's titles and links. Descriptions are the donate page's own.
 const help = [
   {
-    key: "donate",
-    icon: IconDollar,
+    type: "direct",
     title: "Donate to Alveus directly",
-    description:
-      "Make a one-time donation to Alveus, or set up a recurring donation for ongoing support.",
     link: "/donate",
-    cta: "Donate",
     external: false,
   },
   {
-    key: "amazon",
-    icon: IconAmazon,
+    type: "wishlist",
     title: "Gift via our Amazon Wishlist",
-    description:
-      "Donate specific items we are in need of at Alveus through our Amazon wishlist.",
     link: "/wishlist",
-    cta: "Wishlist",
     external: true,
   },
   {
-    key: "po-box",
-    icon: IconBox,
+    type: "poBox",
     title: "Send items to our PO Box",
-    description:
-      "Send something to our PO Box. Perhaps a snack for our staff or ambassador enrichment?",
     link: "/po-box",
-    cta: "PO Box",
     external: false,
   },
-];
+] as const;
 
-const NavigationAndCardsPage: NextPage = () => (
+const NavigationAndCardsPage: NextPage<Props> = ({ randomAmbassadors }) => (
   <>
     <Meta
       title="Navigation and cards | Mockup"
@@ -477,12 +397,14 @@ const NavigationAndCardsPage: NextPage = () => (
         2. Home: featured ambassadors
       </Heading>
       <p className="mb-8 max-w-3xl">
-        Shows three or four ambassadors at once instead of a carousel, with
-        modes for special days. Photos, names and text come from the ambassador
-        data. The birthday mode picks the next ambassador birthday.
+        Shows up to four ambassadors at once instead of a carousel. Random picks
+        them from the home page ambassadors when the page is built, refreshed
+        every 30 minutes like the home page YouTube section. Birthday features
+        the next ambassador birthday from the birth dates in the data. Photos,
+        names and text come from the ambassador data.
       </p>
 
-      <FeaturedAmbassadors />
+      <FeaturedAmbassadors randomAmbassadors={randomAmbassadors} />
     </Section>
 
     {/* 3. How to Help */}
@@ -491,27 +413,15 @@ const NavigationAndCardsPage: NextPage = () => (
         How to Help
       </Heading>
 
-      <ul className="mt-8 grid gap-6 md:grid-cols-3">
+      <ul className="mt-8 grid gap-8 md:grid-cols-3">
         {help.map((item) => (
-          <li key={item.key}>
-            <Link
-              href={item.link}
+          <li key={item.type}>
+            <Donate
+              type={item.type}
+              title={item.title}
+              link={item.link}
               external={item.external}
-              custom
-              className="group flex h-full flex-col gap-3 rounded-xl border border-alveus-green-700 bg-alveus-green-800 p-5 transition-colors hover:border-alveus-tan focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-tan motion-reduce:transition-none"
-            >
-              <span className="self-start rounded-2xl bg-alveus-tan p-3 text-alveus-green">
-                <item.icon size={24} />
-              </span>
-              <span className="font-serif text-2xl font-bold">
-                {item.title}
-              </span>
-              <span className="text-alveus-green-100">{item.description}</span>
-              <span className="mt-auto inline-flex items-center gap-1 underline">
-                {item.cta}
-                <IconArrowRight className="size-4" />
-              </span>
-            </Link>
+            />
           </li>
         ))}
       </ul>
