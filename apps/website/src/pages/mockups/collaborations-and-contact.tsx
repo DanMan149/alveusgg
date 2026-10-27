@@ -1,6 +1,7 @@
 import { type NextPage } from "next";
 import Image from "next/image";
 import {
+  Fragment,
   type ReactNode,
   useCallback,
   useEffect,
@@ -11,6 +12,7 @@ import {
 
 import collaborations, { type Collaboration } from "@/data/collaborations";
 
+import { classes } from "@/utils/classes";
 import { formatDateTime } from "@/utils/datetime";
 
 import { useCopyToClipboard } from "@/hooks/clipboard";
@@ -28,7 +30,7 @@ import ViewTabs from "@/components/mockups/ViewTabs";
 
 import IconArrowRight from "@/icons/IconArrowRight";
 import IconClipboard from "@/icons/IconClipboard";
-import IconEnvelope from "@/icons/IconEnvelope";
+import IconExternal from "@/icons/IconExternal";
 import IconInformationCircle from "@/icons/IconInformationCircle";
 import IconSearch from "@/icons/IconSearch";
 import IconX from "@/icons/IconX";
@@ -351,133 +353,147 @@ type ContactLink = { text: string; href: string; external?: boolean };
 type ContactCategory = {
   key: string;
   name: string;
-  // Text copied from the live contact page
-  description: string;
+  // Text and links copied from the live contact page
+  description?: string;
   emails: string[];
-  links: { label?: string; items: ContactLink[] }[];
+  // Labelled links shown in the dark inner box (merch)
+  inner?: { label: string; link: ContactLink }[];
+  // Text shown above the buttons
+  note?: string;
+  buttons: ContactLink[];
 };
 
 const categories: ContactCategory[] = [
   {
     key: "donors",
     name: "Donors",
-    description: "For donor inquiries",
+    description: "For donor inquiries:",
     emails: ["contact@alveussanctuary.org"],
-    links: [
-      {
-        items: [
-          { text: "Donate", href: "/donate" },
-          { text: "PO Box", href: "/po-box" },
-        ],
-      },
+    buttons: [
+      { text: "Donate", href: "/donate" },
+      { text: "PO Box", href: "/po-box" },
     ],
   },
   {
     key: "business",
     name: "Business",
-    description: "For business inquiries",
+    description: "For business inquiries:",
     emails: ["alveus@loaded.gg"],
-    links: [],
+    buttons: [],
   },
   {
     key: "merch",
     name: "Merch",
-    description: "For merch inquiries",
     emails: [],
-    links: [
+    inner: [
       {
         label: "For merch inquiries:",
-        items: [
-          {
-            text: "shop.alveussanctuary.org/pages/contact",
-            href: "https://shop.alveussanctuary.org/pages/contact",
-            external: true,
-          },
-        ],
+        link: {
+          text: "shop.alveussanctuary.org/pages/contact",
+          href: "https://shop.alveussanctuary.org/pages/contact",
+          external: true,
+        },
       },
       {
         label: "For plushie inquiries:",
-        items: [
-          {
-            text: "youtooz.com/pages/contact-us",
-            href: "https://youtooz.com/pages/contact-us",
-            external: true,
-          },
-        ],
+        link: {
+          text: "youtooz.com/pages/contact-us",
+          href: "https://youtooz.com/pages/contact-us",
+          external: true,
+        },
       },
     ],
+    buttons: [],
   },
   {
     key: "grants",
     name: "Grants",
-    description: "For foundation & corporate grants",
+    description: "For foundation & corporate grants:",
     emails: ["grants@alveussanctuary.org"],
-    links: [
-      { items: [{ text: "Funding priorities", href: "/donate/grants" }] },
-    ],
+    buttons: [{ text: "Funding priorities", href: "/donate/grants" }],
   },
   {
     key: "collaboration",
     name: "Collaboration",
     description:
-      "To connect with Maya regarding collaboration or to offer support for Alveus Sanctuary",
+      "To connect with Maya regarding collaboration or to offer support for Alveus Sanctuary:",
     emails: ["mayahiga@alveussanctuary.org"],
-    links: [{ items: [{ text: "Collaborations", href: "/collaborations" }] }],
+    buttons: [{ text: "Collaborations", href: "/collaborations" }],
   },
   {
     key: "security",
     name: "Security and tech",
     description:
-      "If you discover a security vulnerability within the website, or any of our other open-source projects, please email us",
+      "If you discover a security vulnerability within the website, or any of our other open-source projects, please email us:",
     emails: ["opensource@alveussanctuary.org"],
-    links: [
+    note: "For issues with the website or Twitch extension, please open an issue on GitHub:",
+    buttons: [
       {
-        label:
-          "For issues with the website or Twitch extension, please open an issue on GitHub:",
-        items: [
-          {
-            text: "Website",
-            href: "https://github.com/alveusgg/alveusgg/issues/new/choose",
-            external: true,
-          },
-          {
-            text: "Twitch Extension",
-            href: "https://github.com/alveusgg/extension/issues/new/choose",
-            external: true,
-          },
-        ],
+        text: "Website",
+        href: "https://github.com/alveusgg/alveusgg/issues/new/choose",
+        external: true,
+      },
+      {
+        text: "Twitch Extension",
+        href: "https://github.com/alveusgg/extension/issues/new/choose",
+        external: true,
       },
     ],
   },
 ];
 
+// Light fill, dark text (the style the old Send email button had)
+const contactButtonClasses =
+  "inline-flex items-center gap-2 rounded-lg bg-alveus-tan px-3 py-1.5 text-alveus-green-900 transition-colors hover:bg-alveus-tan-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-tan motion-reduce:transition-none";
+
+const innerBoxClasses = "rounded-xl bg-alveus-green-800 p-3";
+
+// Let long addresses wrap at "@", "." and "/" rather than mid-word
+const withBreaks = (text: string) =>
+  text.split(/(?=[@./])/).map((part, idx) => (
+    <Fragment key={part + idx.toString()}>
+      {idx > 0 && <wbr />}
+      {part}
+    </Fragment>
+  ));
+
 const EmailRow = ({ email }: { email: string }) => {
-  const { copy, statusText } = useCopyToClipboard();
+  const { copy, status } = useCopyToClipboard();
+  const message =
+    status === "success" ? "Copied" : status === "error" ? "Copy failed" : "";
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl bg-alveus-green-800 p-4">
-      {/* Own line so the address only wraps when it can't fit at all */}
-      <p className="font-serif text-lg font-bold wrap-anywhere sm:text-xl">
-        {email}
-      </p>
-      <div className="flex shrink-0 gap-2">
+    <div className={classes(innerBoxClasses, "flex items-center gap-2")}>
+      <Link
+        href={`mailto:${email}`}
+        dark
+        className="min-w-0 grow font-serif text-base font-bold wrap-anywhere sm:text-lg"
+      >
+        {withBreaks(email)}
+      </Link>
+      <span className="relative shrink-0">
         <button
           type="button"
           onClick={() => copy(email)}
-          className="inline-flex items-center gap-2 rounded-lg border border-alveus-tan/40 px-3 py-1.5 transition-colors hover:bg-alveus-tan hover:text-alveus-green-900"
+          aria-label="Copy email address"
+          className="rounded-lg p-2 transition-colors hover:bg-alveus-tan hover:text-alveus-green-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-tan motion-reduce:transition-none"
         >
-          <IconClipboard className="size-4" />
-          <span aria-live="polite">{statusText}</span>
-          <span className="sr-only"> {email}</span>
+          <IconClipboard className="size-5" />
         </button>
-        <a
-          href={`mailto:${email}`}
-          className="inline-flex items-center gap-2 rounded-lg bg-alveus-tan px-3 py-1.5 text-alveus-green-900 transition-colors hover:bg-alveus-tan-200"
+        {/* Floats above the button so the row never shifts */}
+        <span
+          aria-hidden="true"
+          className={classes(
+            "pointer-events-none absolute right-0 bottom-full mb-1 rounded-md bg-alveus-tan px-2 py-0.5 text-sm whitespace-nowrap text-alveus-green-900 transition-opacity motion-reduce:transition-none",
+            message ? "opacity-100" : "opacity-0",
+          )}
         >
-          <IconEnvelope className="size-4" />
-          Send email
-        </a>
-      </div>
+          {message || "Copied"}
+        </span>
+        <span className="sr-only" aria-live="polite">
+          {message}
+        </span>
+      </span>
     </div>
   );
 };
@@ -488,47 +504,76 @@ const ContactView = () => (
 
     <p
       role="note"
-      className="mb-8 inline-flex items-center gap-2 rounded-lg border border-alveus-green-300 bg-alveus-green-100 px-4 py-2 text-lg font-semibold"
+      className="mb-6 inline-flex items-center gap-2 rounded-lg border border-alveus-green-300 bg-alveus-green-100 px-4 py-2 text-lg font-semibold"
     >
       <IconInformationCircle className="size-5 shrink-0" />
       We are not openly hiring.
     </p>
 
-    <ul className="grid gap-6 md:grid-cols-2">
+    {/* Columns instead of a grid so each card keeps its own height (no empty bottoms) */}
+    <ul className="gap-4 md:columns-2 xl:columns-3">
       {categories.map((category) => (
-        <li key={category.key} id={`contact-${category.key}`}>
-          <Box dark className="flex h-full flex-col gap-4 p-6 md:p-8">
-            <Heading level={2} className="my-0 text-3xl">
-              {category.name}
-            </Heading>
-            <p className="text-lg">{category.description}</p>
+        <li
+          key={category.key}
+          id={`contact-${category.key}`}
+          className="mb-4 break-inside-avoid"
+        >
+          <Box dark className="flex flex-col gap-3 p-5">
+            <div>
+              <Heading level={2} className="my-0 text-2xl">
+                {category.name}
+              </Heading>
+              {category.description && (
+                <p className="mt-1">{category.description}</p>
+              )}
+            </div>
 
             {category.emails.map((email) => (
               <EmailRow key={email} email={email} />
             ))}
 
-            {category.links.map((group) => (
-              <div key={group.items[0]!.href}>
-                {group.label && <p className="mb-2">{group.label}</p>}
-                <ul className="flex flex-wrap gap-x-6 gap-y-2">
-                  {group.items.map((link) => (
-                    <li key={link.href}>
-                      <Link
-                        href={link.href}
-                        external={link.external}
-                        dark
-                        className="inline-flex items-center gap-1 text-lg"
-                      >
-                        {link.text}
-                        {!link.external && (
-                          <IconArrowRight className="size-4" />
-                        )}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            {category.inner && (
+              <ul className={classes(innerBoxClasses, "flex flex-col gap-2")}>
+                {category.inner.map(({ label, link }) => (
+                  <li key={link.href}>
+                    <p className="text-sm">{label}</p>
+                    <Link
+                      href={link.href}
+                      external={link.external}
+                      dark
+                      className="font-serif text-base font-bold wrap-anywhere"
+                    >
+                      {withBreaks(link.text)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {category.note && <p className="text-sm">{category.note}</p>}
+
+            {category.buttons.length > 0 && (
+              <ul className="flex flex-wrap gap-2 pt-1">
+                {category.buttons.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      external={link.external}
+                      custom
+                      className={contactButtonClasses}
+                    >
+                      {link.text}
+                      {link.external && (
+                        <IconExternal size={14} aria-hidden="true" />
+                      )}
+                      {link.external && (
+                        <span className="sr-only"> (opens in a new tab)</span>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Box>
         </li>
       ))}
