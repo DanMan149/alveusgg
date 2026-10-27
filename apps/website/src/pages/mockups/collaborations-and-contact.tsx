@@ -418,7 +418,7 @@ const categories: ContactCategory[] = [
     description:
       "To connect with Maya regarding collaboration or to offer support for Alveus Sanctuary:",
     emails: ["mayahiga@alveussanctuary.org"],
-    buttons: [{ text: "Collaborations", href: "/collaborations" }],
+    buttons: [],
   },
   {
     key: "security",
@@ -498,6 +498,48 @@ const EmailRow = ({ email }: { email: string }) => {
   );
 };
 
+const wideKeys = ["merch", "security"];
+const gridCategories = categories.filter(({ key }) => !wideKeys.includes(key));
+const merch = categories.find(({ key }) => key === "merch");
+const security = categories.find(({ key }) => key === "security");
+
+const CategoryIntro = ({ category }: { category: ContactCategory }) => (
+  <div>
+    <Heading level={2} className="my-0 text-2xl">
+      {category.name}
+    </Heading>
+    {category.description && <p className="mt-1">{category.description}</p>}
+  </div>
+);
+
+const ContactButtons = ({
+  links,
+  className,
+}: {
+  links: ContactLink[];
+  className?: string;
+}) =>
+  links.length > 0 ? (
+    <ul className={classes("flex flex-wrap gap-2 pt-1", className)}>
+      {links.map((link) => (
+        <li key={link.href}>
+          <Link
+            href={link.href}
+            external={link.external}
+            custom
+            className={contactButtonClasses}
+          >
+            {link.text}
+            {link.external && <IconExternal size={14} aria-hidden="true" />}
+            {link.external && (
+              <span className="sr-only"> (opens in a new tab)</span>
+            )}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  ) : null;
+
 const ContactView = () => (
   <Section className="grow">
     <Heading className="text-5xl">Contact Us</Heading>
@@ -510,74 +552,67 @@ const ContactView = () => (
       We are not openly hiring.
     </p>
 
-    {/* Columns instead of a grid so each card keeps its own height (no empty bottoms) */}
-    <ul className="gap-4 md:columns-2 xl:columns-3">
-      {categories.map((category) => (
-        <li
-          key={category.key}
-          id={`contact-${category.key}`}
-          className="mb-4 break-inside-avoid"
-        >
-          <Box dark className="flex flex-col gap-3 p-5">
-            <div>
-              <Heading level={2} className="my-0 text-2xl">
-                {category.name}
-              </Heading>
-              {category.description && (
-                <p className="mt-1">{category.description}</p>
-              )}
-            </div>
-
+    {/* Four equal cards: 1, 2 or 4 per row, so no row has an empty slot */}
+    <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {gridCategories.map((category) => (
+        <li key={category.key} id={`contact-${category.key}`}>
+          <Box dark className="flex h-full flex-col gap-3 p-5">
+            <CategoryIntro category={category} />
             {category.emails.map((email) => (
               <EmailRow key={email} email={email} />
             ))}
-
-            {category.inner && (
-              <ul className={classes(innerBoxClasses, "flex flex-col gap-2")}>
-                {category.inner.map(({ label, link }) => (
-                  <li key={link.href}>
-                    <p className="text-sm">{label}</p>
-                    <Link
-                      href={link.href}
-                      external={link.external}
-                      dark
-                      className="font-serif text-base font-bold wrap-anywhere"
-                    >
-                      {withBreaks(link.text)}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            {category.note && <p className="text-sm">{category.note}</p>}
-
-            {category.buttons.length > 0 && (
-              <ul className="flex flex-wrap gap-2 pt-1">
-                {category.buttons.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      external={link.external}
-                      custom
-                      className={contactButtonClasses}
-                    >
-                      {link.text}
-                      {link.external && (
-                        <IconExternal size={14} aria-hidden="true" />
-                      )}
-                      {link.external && (
-                        <span className="sr-only"> (opens in a new tab)</span>
-                      )}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
+            {/* Buttons sit on the bottom edge so they line up across a row */}
+            <ContactButtons links={category.buttons} className="mt-auto" />
           </Box>
         </li>
       ))}
     </ul>
+
+    {/* Merch and Security have more content, so each gets a full-width row */}
+    {merch && (
+      <div id="contact-merch" className="mt-4">
+        <Box dark className="flex flex-col gap-3 p-5">
+          <CategoryIntro category={merch} />
+          <ul className={classes(innerBoxClasses, "grid gap-3 md:grid-cols-2")}>
+            {merch.inner?.map(({ label, link }) => (
+              <li key={link.href}>
+                <p className="text-sm">{label}</p>
+                <Link
+                  href={link.href}
+                  external={link.external}
+                  dark
+                  className="font-serif text-base font-bold wrap-anywhere sm:text-lg"
+                >
+                  {withBreaks(link.text)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Box>
+      </div>
+    )}
+
+    {security && (
+      <div id="contact-security" className="mt-4">
+        <Box dark className="p-5">
+          <Heading level={2} className="my-0 text-2xl">
+            {security.name}
+          </Heading>
+          <div className="mt-3 grid gap-6 md:grid-cols-2">
+            <div className="flex flex-col gap-3">
+              {security.description && <p>{security.description}</p>}
+              {security.emails.map((email) => (
+                <EmailRow key={email} email={email} />
+              ))}
+            </div>
+            <div className="flex flex-col gap-3">
+              {security.note && <p>{security.note}</p>}
+              <ContactButtons links={security.buttons} />
+            </div>
+          </div>
+        </Box>
+      </div>
+    )}
   </Section>
 );
 
