@@ -135,7 +135,7 @@ type NewsVideo = Partial<Omit<NewsArticle, "logo">> & {
 
 type News = NewsCore & (NewsArticle | NewsVideo);
 
-export const news: Record<string, News> = {
+const news: Record<string, News> = {
   cbs: {
     title: "CBS News Mornings",
     href: "https://www.cbsnews.com/boston/video/gen-z-jane-goodall-saves-wildlife-with-streaming-wildlife-sanctuary/",

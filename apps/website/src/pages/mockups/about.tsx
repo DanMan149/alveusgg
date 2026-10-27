@@ -1,3 +1,9 @@
+import {
+  Dialog,
+  DialogBackdrop,
+  DialogPanel,
+  DialogTitle,
+} from "@headlessui/react";
 import { type NextPage } from "next";
 import Image from "next/image";
 import {
@@ -6,32 +12,22 @@ import {
   isValidElement,
   useCallback,
   useEffect,
-  useMemo,
   useState,
 } from "react";
 import reactToText from "react-to-text";
 
-import { env } from "@/env";
-
-import staff, { type Staff } from "@/data/staff";
+import staff, { type Staff, departments } from "@/data/staff";
 
 import { classes } from "@/utils/classes";
 import { formatPartialDateString } from "@/utils/datetime-partial";
 
+import Box from "@/components/content/Box";
 import Button from "@/components/content/Button";
 import Heading from "@/components/content/Heading";
-import InPageNav from "@/components/content/InPageNav";
-import Lightbox from "@/components/content/Lightbox";
 import Link from "@/components/content/Link";
 import { MayaImage } from "@/components/content/Maya";
 import Meta from "@/components/content/Meta";
 import Section from "@/components/content/Section";
-import {
-  StreamEmbed,
-  StreamPreview,
-  getStreamUrlIframe,
-} from "@/components/content/Stream";
-import { YouTubeEmbed, YouTubePreview } from "@/components/content/YouTube";
 import MockupNotice from "@/components/mockups/MockupNotice";
 import ViewTabs, { underlineTabClassName } from "@/components/mockups/ViewTabs";
 
@@ -42,8 +38,9 @@ import IconBox from "@/icons/IconBox";
 import IconChevronDown from "@/icons/IconChevronDown";
 import IconDollar from "@/icons/IconDollar";
 import IconUserGroup from "@/icons/IconUserGroup";
+import IconX from "@/icons/IconX";
 
-import { history, news } from "@/pages/about";
+import { history } from "@/pages/about";
 
 /* ---------- History ---------- */
 
@@ -98,6 +95,7 @@ const parseAmount = (text: string) => {
   return `${match[1] ? "Over " : ""}$${match[2]}`;
 };
 
+// Same order as the live history: oldest first
 const entries = history
   .flatMap((section) => ("items" in section ? section.items : []))
   .map((item) => {
@@ -114,15 +112,14 @@ const entries = history
       amount:
         category === "fundraiser" ? parseAmount(paragraphs.join(" ")) : null,
     };
-  })
-  .reverse();
+  });
 
 type Entry = (typeof entries)[number];
 
 const historyYears = [...new Set(entries.map((entry) => entry.year))];
 
 // The live history puts video blocks (tours, recap) between the dated entries.
-// Keep each one next to the entry that comes before it on the live page.
+// Keep each one right after the entry that comes before it on the live page.
 type HistoryBlock = {
   key: string;
   year: string;
@@ -238,6 +235,7 @@ const HistoryCard = ({
 };
 
 const HistoryView = () => {
+  // The first (earliest) year is open, the rest start collapsed
   const [open, setOpen] = useState<Record<string, boolean>>({
     [historyYears[0]!]: true,
   });
@@ -247,11 +245,6 @@ const HistoryView = () => {
     team: true,
     milestone: true,
   });
-
-  const openYear = useCallback((id: string) => {
-    const year = id.replace("history-", "");
-    setOpen((prev) => ({ ...prev, [year]: true }));
-  }, []);
 
   return (
     <>
@@ -283,15 +276,6 @@ const HistoryView = () => {
           </div>
         </div>
       </Section>
-
-      <InPageNav
-        label="History years"
-        items={historyYears.map((year) => ({
-          id: `history-${year}`,
-          label: year,
-        }))}
-        onNavigate={openYear}
-      />
 
       <Section className="grow">
         <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
@@ -362,7 +346,7 @@ const HistoryView = () => {
                 <Heading
                   level={2}
                   id={`history-${year}`}
-                  className="relative z-10 my-0 scroll-mt-20 pl-14 md:pl-0 md:text-center"
+                  className="relative z-10 my-0 scroll-mt-4 pl-14 md:pl-0 md:text-center"
                 >
                   <button
                     type="button"
@@ -398,15 +382,15 @@ const HistoryView = () => {
                         );
                         const idx = sideIndex.get(entry.key);
                         return [
-                          block && (
-                            <HistoryVideoBlock key={block.key} block={block} />
-                          ),
                           idx !== undefined && (
                             <HistoryCard
                               key={entry.key}
                               entry={entry}
                               side={idx % 2 ? "right" : "left"}
                             />
+                          ),
+                          block && (
+                            <HistoryVideoBlock key={block.key} block={block} />
                           ),
                         ];
                       })}
@@ -427,149 +411,16 @@ const HistoryView = () => {
   );
 };
 
-/* ---------- In the news ---------- */
-
-type NewsItem = (typeof news)[string];
-
-const newsType = (item: NewsItem) =>
-  !("video" in item)
-    ? "Article"
-    : item.video.type === "youtube"
-      ? "Feature"
-      : "Video";
-
-const NewsView = () => {
-  const [lightboxOpen, setLightboxOpen] = useState<string>();
-  const lightboxItems = useMemo(
-    () =>
-      Object.entries(news).reduce<Record<string, ReactNode>>(
-        (acc, [key, item]) => {
-          if (!("video" in item)) return acc;
-          return {
-            ...acc,
-            [key]:
-              item.video.type === "stream" ? (
-                <StreamEmbed src={item.video} caption={item.title} controls />
-              ) : (
-                <YouTubeEmbed videoId={item.video.id} caption={item.title} />
-              ),
-          };
-        },
-        {},
-      ),
-    [],
-  );
-
-  return (
-    <>
-      <Section dark className="py-12">
-        <Heading className="my-0">In The News</Heading>
-      </Section>
-
-      <Section className="grow bg-alveus-green-100">
-        <ul className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-          {Object.entries(news).map(([key, item]) => {
-            const type = newsType(item);
-            const videoHref =
-              "video" in item
-                ? item.video.type === "stream"
-                  ? getStreamUrlIframe(item.video, {
-                      title: `Alveus Sanctuary: ${item.title}`,
-                      link: `${env.NEXT_PUBLIC_BASE_URL}/about#news`,
-                    })
-                  : `https://www.youtube.com/watch?v=${encodeURIComponent(item.video.id)}`
-                : null;
-
-            return (
-              <li
-                key={key}
-                className="flex flex-col overflow-hidden rounded-xl border border-alveus-green-200 bg-alveus-tan-50"
-              >
-                <div className="relative aspect-video overflow-hidden bg-alveus-green-800">
-                  {"video" in item ? (
-                    <Link
-                      href={videoHref!}
-                      external
-                      custom
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setLightboxOpen(key);
-                      }}
-                      className="group/trigger block size-full"
-                    >
-                      {item.video.type === "stream" ? (
-                        <StreamPreview
-                          src={item.video}
-                          alt={item.title}
-                          className="size-full rounded-none object-cover"
-                        />
-                      ) : (
-                        <YouTubePreview
-                          videoId={item.video.id}
-                          alt={item.title}
-                          className="aspect-video size-full object-cover"
-                        />
-                      )}
-                    </Link>
-                  ) : (
-                    <Link
-                      href={item.href}
-                      external
-                      custom
-                      className="flex size-full items-center justify-center p-8"
-                    >
-                      <Image
-                        src={item.logo}
-                        alt={item.title}
-                        width={480}
-                        className="h-12 w-auto max-w-full object-contain"
-                      />
-                    </Link>
-                  )}
-                  <span className="pointer-events-none absolute top-3 left-3 rounded-md bg-alveus-tan px-2 py-0.5 text-sm font-semibold text-alveus-green-900">
-                    {type}
-                  </span>
-                </div>
-
-                <div className="flex grow flex-col gap-2 p-5">
-                  <Heading level={2} className="my-0 text-2xl">
-                    {item.title}
-                  </Heading>
-                  {item.quote && (
-                    <blockquote className="text-lg text-alveus-green-800 italic">
-                      {item.quote}
-                    </blockquote>
-                  )}
-                  {item.href && (
-                    <Link href={item.href} external className="mt-auto pt-2">
-                      {type === "Article" ? "Read the article" : "View source"}
-                    </Link>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-
-        <Lightbox
-          open={lightboxOpen}
-          onClose={() => setLightboxOpen(undefined)}
-          items={lightboxItems}
-        />
-      </Section>
-    </>
-  );
-};
-
 /* ---------- Team ---------- */
 
-type Department = "all" | "operations" | "animalCare" | "facilities";
+type DepartmentKey = Exclude<keyof typeof departments, "leadership">;
+type DepartmentFilter = "all" | DepartmentKey;
 
-const departmentLabels: Record<Exclude<Department, "all">, string> = {
-  operations: "Operations",
-  animalCare: "Animal Care",
-  facilities: "Facilities and Infrastructure",
-};
+const departmentKeys: DepartmentKey[] = [
+  "operations",
+  "animalCare",
+  "facilities",
+];
 
 const staffEntries = Object.entries(staff);
 
@@ -590,141 +441,184 @@ const descriptionText = (node: ReactNode): string => {
 const teamImageClasses =
   "aspect-square h-auto w-full rounded-2xl bg-alveus-green object-cover";
 
+const bioButtonId = (key: string) => `${key}-bio-button`;
+
+// Photo with the hover swap, copied from components/content/People.tsx;
+// group-focus-within adds the swap for keyboard focus on the bio button
+const TeamPhoto = ({
+  person,
+  swap = true,
+}: {
+  person: Staff;
+  swap?: boolean;
+}) => (
+  <div className="relative aspect-square h-auto w-full overflow-clip rounded-2xl">
+    {Array.isArray(person.image) ? (
+      <>
+        <Image
+          src={person.image[1]}
+          width={320}
+          alt=""
+          className={teamImageClasses}
+        />
+        <Image
+          src={person.image[0]}
+          width={320}
+          alt=""
+          className={classes(
+            teamImageClasses,
+            "absolute inset-x-0 top-0 drop-shadow-[0_-10px_15px_rgba(0,0,0,0.2)]",
+            swap &&
+              "transition-[top] duration-500 group-focus-within:top-[90%] group-focus-within:duration-1000 group-hover:top-[90%] group-hover:duration-1000 group-focus:top-[90%] group-focus:duration-1000 motion-reduce:transition-none",
+          )}
+        />
+      </>
+    ) : (
+      <Image
+        src={person.image}
+        width={320}
+        alt=""
+        className={teamImageClasses}
+      />
+    )}
+
+    <div className="absolute inset-0 rounded-2xl border-4 border-alveus-green/75" />
+  </div>
+);
+
+// Department label from the live team page (full name plus abbreviation)
+const DepartmentLabel = ({ person }: { person: Staff }) =>
+  departments[person.department] ? (
+    <p className="font-sans text-base text-alveus-green-600 uppercase">
+      {departments[person.department]}
+    </p>
+  ) : null;
+
 const TeamCard = ({
   id,
   person,
-  open,
-  onToggle,
+  onOpen,
 }: {
   id: string;
   person: Staff;
-  open: boolean;
-  onToggle: () => void;
+  onOpen: () => void;
+}) => (
+  <li id={id} className="group flex scroll-mt-4 flex-col" tabIndex={-1}>
+    <div className="mx-auto w-full max-w-xs">
+      <TeamPhoto person={person} />
+    </div>
+
+    <div className="flex grow flex-col pt-4">
+      <Heading level={3} className="my-0 text-3xl">
+        {person.name}
+      </Heading>
+      <Heading level={4} className="my-1 text-xl">
+        {person.title}
+      </Heading>
+      <DepartmentLabel person={person} />
+
+      <p className="mt-3 line-clamp-3 text-gray-500">
+        {descriptionText(person.description)}
+      </p>
+
+      <button
+        type="button"
+        id={bioButtonId(id)}
+        aria-haspopup="dialog"
+        onClick={onOpen}
+        className="mt-auto inline-flex items-center gap-1 self-start pt-3 text-red-600 underline transition-colors hover:text-blue-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700"
+      >
+        Read full bio<span className="sr-only"> of {person.name}</span>
+        <IconArrowRight className="size-4" />
+      </button>
+    </div>
+  </li>
+);
+
+// Same Headless UI dialog and backdrop as components/content/Lightbox.tsx
+const BioDialog = ({
+  openKey,
+  onClose,
+}: {
+  openKey?: string;
+  onClose: () => void;
 }) => {
-  const text = descriptionText(person.description);
-  const hasMore = text.length > 120;
-  const department =
-    person.department !== "leadership"
-      ? departmentLabels[person.department]
-      : null;
-  const bioId = `${id}-bio`;
+  const person = openKey ? staff[openKey] : undefined;
 
   return (
-    <li
-      id={id}
-      data-team-card
-      className={classes(
-        "group flex scroll-mt-20 flex-col gap-3 rounded-xl border bg-alveus-tan-50 p-4",
-        open
-          ? "col-span-full border-alveus-green md:grid md:grid-cols-[16rem_minmax(0,1fr)] md:gap-x-8"
-          : "border-alveus-green-200",
-      )}
-      tabIndex={-1}
-    >
-      {/* Photo swap copied from components/content/People.tsx; group-focus-within adds keyboard focus */}
-      <div
-        className={classes(
-          "relative aspect-square h-auto w-full self-start overflow-clip rounded-2xl",
-          open && "md:row-span-6",
-        )}
-      >
-        {Array.isArray(person.image) ? (
-          <>
-            <Image
-              src={person.image[1]}
-              width={320}
-              alt=""
-              className={teamImageClasses}
-            />
-            <Image
-              src={person.image[0]}
-              width={320}
-              alt=""
-              className={classes(
-                teamImageClasses,
-                "absolute inset-x-0 top-0 drop-shadow-[0_-10px_15px_rgba(0,0,0,0.2)] transition-[top] duration-500 group-focus-within:top-[90%] group-focus-within:duration-1000 group-hover:top-[90%] group-hover:duration-1000 group-focus:top-[90%] group-focus:duration-1000 motion-reduce:transition-none",
-              )}
-            />
-          </>
-        ) : (
-          <Image
-            src={person.image}
-            width={320}
-            alt=""
-            className={teamImageClasses}
-          />
-        )}
+    <Dialog open={!!person} onClose={onClose} className="relative z-100">
+      <DialogBackdrop className="fixed inset-0 bg-black/75" />
 
-        <div className="absolute inset-0 rounded-2xl border-4 border-alveus-green/75" />
-      </div>
-      <div>
-        <Heading level={3} className="my-0 text-2xl">
-          {person.name}
-        </Heading>
-        <p className="font-semibold">{person.title}</p>
-        {department && (
-          <p className="text-sm tracking-wide text-alveus-green-600 uppercase">
-            {department}
-          </p>
-        )}
-      </div>
+      <div className="fixed inset-0 overflow-y-auto p-4 md:p-8">
+        <div className="flex min-h-full items-center justify-center">
+          <DialogPanel className="w-full max-w-3xl">
+            {person && (
+              <Box className="p-6 md:p-8">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Close"
+                  className="absolute top-3 right-3 z-20 rounded-full p-2 text-alveus-green-900 transition-colors hover:text-alveus-green-600 focus-visible:outline-2 focus-visible:outline-alveus-green-700"
+                >
+                  <IconX size={24} />
+                </button>
 
-      {open ? (
-        <div id={bioId} className="flex flex-col gap-3 text-lg">
-          {person.description}
+                <div className="flex flex-col gap-6 sm:flex-row">
+                  <div className="w-40 shrink-0 sm:w-48">
+                    <TeamPhoto person={person} swap={false} />
+                  </div>
+                  <div className="pr-8">
+                    <DialogTitle
+                      as="h3"
+                      className="font-serif text-3xl font-bold md:text-4xl"
+                    >
+                      {person.name}
+                    </DialogTitle>
+                    <Heading level={4} className="my-1 text-xl">
+                      {person.title}
+                    </Heading>
+                    <DepartmentLabel person={person} />
+                  </div>
+                </div>
+
+                <div className="mt-6 flex flex-col gap-4 text-gray-500">
+                  {person.description}
+                </div>
+              </Box>
+            )}
+          </DialogPanel>
         </div>
-      ) : (
-        <p className="line-clamp-2 text-alveus-green-800">{text}</p>
-      )}
-
-      {hasMore && (
-        <button
-          type="button"
-          data-bio-toggle
-          aria-expanded={open}
-          aria-controls={open ? bioId : undefined}
-          onClick={onToggle}
-          className="mt-auto inline-flex items-center gap-1 self-start text-red-600 underline transition-colors hover:text-blue-600"
-        >
-          {open ? "Show less" : "Read full bio"}
-          <IconChevronDown
-            className={classes("size-4", open && "rotate-180")}
-          />
-        </button>
-      )}
-    </li>
+      </div>
+    </Dialog>
   );
 };
 
 const TeamView = ({ initialOpen }: { initialOpen?: string }) => {
-  const [department, setDepartment] = useState<Department>("all");
+  const [department, setDepartment] = useState<DepartmentFilter>("all");
   const [open, setOpen] = useState<string | undefined>(initialOpen);
 
-  // Deep link: scroll the opened card into view
+  // Deep link: bring the card behind the dialog into view
   useEffect(() => {
     if (!initialOpen) return;
-    document.getElementById(initialOpen)?.scrollIntoView({ block: "start" });
+    document.getElementById(initialOpen)?.scrollIntoView({ block: "center" });
   }, [initialOpen]);
 
-  // Close on Escape or a click outside the open card
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(undefined);
-    };
-    const onClick = (e: MouseEvent) => {
-      const target = e.target as Element;
-      // Bio toggles handle themselves (opening one closes the previous)
-      if (target.closest("[data-bio-toggle]")) return;
-      const card = document.getElementById(open);
-      if (card && !card.contains(target)) setOpen(undefined);
-    };
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("click", onClick);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("click", onClick);
-    };
+  const openBio = useCallback((key: string) => {
+    setOpen(key);
+    window.history.replaceState(null, "", `#${key}`);
+  }, []);
+
+  const closeBio = useCallback(() => {
+    const key = open;
+    setOpen(undefined);
+    window.history.replaceState(null, "", "#team");
+    // Return focus to the card's button (also after a deep link, when
+    // nothing had focus before the dialog opened)
+    if (key) {
+      requestAnimationFrame(() =>
+        document.getElementById(bioButtonId(key))?.focus(),
+      );
+    }
   }, [open]);
 
   const filtered = staffEntries.filter(
@@ -751,54 +645,48 @@ const TeamView = ({ initialOpen }: { initialOpen?: string }) => {
         <div
           role="group"
           aria-label="Filter by department"
-          className="mt-6 mb-8 flex flex-wrap items-center border-b border-alveus-green-200"
+          className="mt-6 mb-10 flex flex-wrap items-center border-b border-alveus-green-200"
         >
-          {(["all", "operations", "animalCare", "facilities"] as const).map(
-            (key, idx) => {
-              const count = staffEntries.filter(
-                ([, person]) => key === "all" || person.department === key,
-              ).length;
-              return (
-                <span key={key} className="flex items-center">
-                  {idx > 0 && (
-                    <span
-                      aria-hidden="true"
-                      className="h-4 w-px bg-alveus-green-300"
-                    />
-                  )}
-                  <button
-                    type="button"
-                    aria-pressed={department === key}
-                    onClick={() => {
-                      setDepartment(key);
-                      setOpen(undefined);
-                    }}
-                    className={underlineTabClassName(department === key)}
-                  >
-                    {key === "all" ? "All" : departmentLabels[key]}{" "}
-                    <span className="font-sans text-sm text-alveus-green-600">
-                      ({count})
-                    </span>
-                  </button>
-                </span>
-              );
-            },
-          )}
+          {(["all", ...departmentKeys] as const).map((key, idx) => {
+            const count = staffEntries.filter(
+              ([, person]) => key === "all" || person.department === key,
+            ).length;
+            return (
+              <span key={key} className="flex items-center">
+                {idx > 0 && (
+                  <span
+                    aria-hidden="true"
+                    className="h-4 w-px bg-alveus-green-300"
+                  />
+                )}
+                <button
+                  type="button"
+                  aria-pressed={department === key}
+                  onClick={() => setDepartment(key)}
+                  className={underlineTabClassName(department === key)}
+                >
+                  {key === "all" ? "All" : departments[key]}{" "}
+                  <span className="font-sans text-sm text-alveus-green-600">
+                    ({count})
+                  </span>
+                </button>
+              </span>
+            );
+          })}
         </div>
 
-        <ul className="grid grid-cols-1 items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
           {filtered.map(([key, person]) => (
             <TeamCard
               key={key}
               id={key}
               person={person}
-              open={open === key}
-              onToggle={() =>
-                setOpen((prev) => (prev === key ? undefined : key))
-              }
+              onOpen={() => openBio(key)}
             />
           ))}
         </ul>
+
+        <BioDialog openKey={open} onClose={closeBio} />
       </Section>
     </>
   );
@@ -810,16 +698,14 @@ const AboutMockupPage: NextPage = () => {
   const [view, setView] = useState(0);
   const [deepLink, setDeepLink] = useState<string>();
 
-  // #kayla style links open that bio on the team view, #news opens the news view
+  // #kayla style links open that bio on the team view
   useEffect(() => {
     const hash = window.location.hash.slice(1);
     if (hash in staff) {
-      setView(2);
-      setDeepLink(hash);
-    } else if (hash === "news") {
       setView(1);
+      setDeepLink(hash);
     } else if (hash === "team") {
-      setView(2);
+      setView(1);
     }
   }, []);
 
@@ -827,7 +713,7 @@ const AboutMockupPage: NextPage = () => {
     <>
       <Meta
         title="About | Mockup"
-        description="Design mockup of the about, in the news and team pages."
+        description="Design mockup of the about and team pages."
         noindex
       />
 
@@ -844,7 +730,6 @@ const AboutMockupPage: NextPage = () => {
         onChange={setView}
         tabs={[
           { key: "history", label: "History", content: <HistoryView /> },
-          { key: "news", label: "In The News", content: <NewsView /> },
           {
             key: "team",
             label: "Team",
