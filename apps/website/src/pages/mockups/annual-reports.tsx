@@ -1,5 +1,4 @@
 import { type NextPage } from "next";
-import { type ReactNode } from "react";
 
 import { getReport, reportYears } from "@/data/annual-reports";
 
@@ -11,55 +10,19 @@ import MockupNotice from "@/components/mockups/MockupNotice";
 
 import IconDownload from "@/icons/IconDownload";
 
-type KeyStats = {
-  summary: ReactNode | null;
-  income: string;
-  expenses: string;
-  net: string;
-  reach: { value: string; label: string } | null;
-};
-
-// Figures from each report page (rounded to the nearest dollar). The 2021
-// report has no total income or net income, so 2021 uses Part I of its 990.
-const stats: Record<number, KeyStats> = {
-  2024: {
-    summary:
-      "Alveus hosted over 30 content creators for collaborations that reached millions of people around the world.",
-    income: "$1,592,716",
-    expenses: "$901,591",
-    net: "$691,126",
-    reach: { value: "Over 100M", label: "people reached across all platforms" },
-  },
-  2023: {
-    summary:
-      "We also hosted 20 content collaborations with creators from across the United States.",
-    income: "$891,597",
-    expenses: "$570,027",
-    net: "$321,570",
-    reach: { value: "319M", label: "minutes watched on Twitch" },
-  },
-  2022: {
-    // The 2022 report has no summary sentence
-    summary: null,
-    income: "$300,067",
-    expenses: "$285,839",
-    net: "$14,228",
-    reach: { value: "50.3M", label: "minutes watched" },
-  },
-  2021: {
-    summary:
-      "In 2021, the majority (67.30%) of funds were dedicated to development of the facility.",
-    income: "$763,380",
-    expenses: "$156,899",
-    net: "$606,481",
-    reach: null,
-  },
+// Sentences copied verbatim from each year's report text
+// (src/data/annual-reports.tsx). The 2022 report has no summary text.
+const summaries: Record<number, string | null> = {
+  2024: "Alveus hosted over 30 content creators for collaborations that reached millions of people around the world.",
+  2023: "We also hosted 20 content collaborations with creators from across the United States.",
+  2022: null,
+  2021: "In 2021, the majority (67.30%) of funds were dedicated to development of the facility.",
 };
 
 const reports = reportYears.map((year) => ({
   year,
   filing: getReport(year).filing,
-  ...stats[year]!,
+  summary: summaries[year] ?? null,
 }));
 
 const LatestBadge = () => (
@@ -68,12 +31,8 @@ const LatestBadge = () => (
   </span>
 );
 
-const NotAvailable = ({ what }: { what: string }) => (
-  <span className="text-alveus-green-600">
-    n/a<span className="sr-only"> ({what})</span>
-  </span>
-);
-
+// Explicit roles keep the table semantics when rows stack on phones
+// (display: block otherwise drops them in some browsers)
 const AnnualReportsMockupPage: NextPage = () => (
   <>
     <Meta
@@ -100,94 +59,81 @@ const AnnualReportsMockupPage: NextPage = () => (
     <Section className="grow">
       <Heading
         level={2}
+        id="all-reports"
         className="mt-0 mb-6 border-b border-alveus-green-200 pb-2 text-3xl"
       >
         All reports
       </Heading>
 
-      <div className="relative overflow-x-auto rounded-2xl border border-alveus-green-200 bg-alveus-tan-50">
-        <table className="w-full min-w-4xl text-left">
+      <div className="rounded-2xl border border-alveus-green-200 bg-alveus-tan-50">
+        <table role="table" className="block w-full text-left md:table">
           <caption className="sr-only">
-            Key stats from each annual report
+            Annual reports by year, with each year&apos;s Form 990 filing and
+            full report
           </caption>
-          <thead className="bg-alveus-green-100 text-sm text-alveus-green-800">
-            <tr>
-              <th scope="col" className="px-4 py-3">
+          <thead
+            role="rowgroup"
+            className="sr-only bg-alveus-green-100 text-sm text-alveus-green-800 md:not-sr-only md:table-header-group"
+          >
+            <tr role="row">
+              <th role="columnheader" scope="col" className="px-4 py-3">
                 Year
               </th>
-              <th scope="col" className="px-4 py-3">
+              <th role="columnheader" scope="col" className="px-4 py-3">
                 Summary
               </th>
-              <th scope="col" className="px-4 py-3 text-right">
-                Total income
+              <th role="columnheader" scope="col" className="px-4 py-3">
+                Form 990
               </th>
-              <th scope="col" className="px-4 py-3 text-right">
-                Expenses
-              </th>
-              <th scope="col" className="px-4 py-3 text-right">
-                Net income
-              </th>
-              <th scope="col" className="px-4 py-3">
-                Reach
-              </th>
-              <th scope="col" className="px-4 py-3">
-                <span className="sr-only">Links</span>
+              <th role="columnheader" scope="col" className="px-4 py-3">
+                Report
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-alveus-green-200">
+          <tbody
+            role="rowgroup"
+            className="block divide-y divide-alveus-green-200 md:table-row-group"
+          >
             {reports.map((report, idx) => (
-              <tr key={report.year} className="align-top">
+              <tr
+                key={report.year}
+                role="row"
+                className="flex flex-col gap-3 p-4 md:table-row md:p-0"
+              >
                 <th
+                  role="rowheader"
                   scope="row"
-                  className="p-4 font-serif text-2xl text-alveus-green-800 tabular-nums"
+                  className="font-serif text-2xl text-alveus-green-800 tabular-nums md:p-4 md:align-top"
                 >
-                  <span className="flex flex-col items-start gap-1">
+                  <span className="flex items-center gap-2 md:flex-col md:items-start md:gap-1">
                     {report.year}
                     {idx === 0 && <LatestBadge />}
                   </span>
                 </th>
-                <td className="max-w-xs p-4">
-                  {report.summary ?? (
-                    <NotAvailable what="no summary in this report" />
-                  )}
+                <td
+                  role="cell"
+                  className="empty:hidden md:max-w-md md:p-4 md:align-top md:empty:table-cell"
+                >
+                  {report.summary}
                 </td>
-                <td className="p-4 text-right tabular-nums">{report.income}</td>
-                <td className="p-4 text-right tabular-nums">
-                  {report.expenses}
+                <td role="cell" className="md:p-4 md:align-top">
+                  <Link
+                    href={report.filing}
+                    download={`alveus-sanctuary-990-${report.year}.pdf`}
+                    className="inline-flex items-center gap-1"
+                  >
+                    Download {report.year} 990 Filing
+                    <IconDownload size={16} />
+                  </Link>
                 </td>
-                <td className="p-4 text-right tabular-nums">{report.net}</td>
-                <td className="p-4">
-                  {report.reach ? (
-                    <>
-                      <span className="tabular-nums">{report.reach.value}</span>
-                      <span className="block text-sm text-alveus-green-700">
-                        {report.reach.label}
-                      </span>
-                    </>
-                  ) : (
-                    <NotAvailable what="not in this report" />
-                  )}
-                </td>
-                <td className="p-4 whitespace-nowrap">
-                  <ul className="flex flex-col gap-2">
-                    <li>
-                      <Link href={`/about/annual-reports/${report.year}`}>
-                        Read report
-                        <span className="sr-only"> for {report.year}</span>
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        href={report.filing}
-                        download={`alveus-sanctuary-990-${report.year}.pdf`}
-                        className="inline-flex items-center gap-1"
-                      >
-                        Download {report.year} 990 Filing
-                        <IconDownload size={16} />
-                      </Link>
-                    </li>
-                  </ul>
+                <td
+                  role="cell"
+                  className="md:p-4 md:align-top md:whitespace-nowrap"
+                >
+                  <Link href={`/about/annual-reports/${report.year}`}>
+                    Read report
+                    <span className="sr-only"> for {report.year}</span>
+                  </Link>
                 </td>
               </tr>
             ))}
