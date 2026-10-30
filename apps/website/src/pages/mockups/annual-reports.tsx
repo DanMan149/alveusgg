@@ -68,8 +68,8 @@ const AnnualReportsMockupPage: NextPage = () => (
       <div className="rounded-2xl border border-alveus-green-200 bg-alveus-tan-50">
         <table role="table" className="block w-full text-left md:table">
           <caption className="sr-only">
-            Annual reports by year, with each year&apos;s Form 990 filing and
-            full report
+            Annual reports by year, with each year&apos;s full report and Form
+            990 filing
           </caption>
           <thead
             role="rowgroup"
@@ -83,10 +83,10 @@ const AnnualReportsMockupPage: NextPage = () => (
                 Summary
               </th>
               <th role="columnheader" scope="col" className="px-4 py-3">
-                Form 990
+                Report
               </th>
               <th role="columnheader" scope="col" className="px-4 py-3">
-                Report
+                Form 990
               </th>
             </tr>
           </thead>
@@ -103,9 +103,9 @@ const AnnualReportsMockupPage: NextPage = () => (
                 <th
                   role="rowheader"
                   scope="row"
-                  className="font-serif text-2xl text-alveus-green-800 tabular-nums md:p-4 md:align-top"
+                  className="font-serif text-2xl text-alveus-green-800 tabular-nums md:p-4 md:align-top md:whitespace-nowrap"
                 >
-                  <span className="flex items-center gap-2 md:flex-col md:items-start md:gap-1">
+                  <span className="flex items-center gap-2">
                     {report.year}
                     {idx === 0 && <LatestBadge />}
                   </span>
@@ -116,23 +116,26 @@ const AnnualReportsMockupPage: NextPage = () => (
                 >
                   {report.summary}
                 </td>
-                <td role="cell" className="md:p-4 md:align-top">
-                  <Link
-                    href={report.filing}
-                    download={`alveus-sanctuary-990-${report.year}.pdf`}
-                    className="inline-flex items-center gap-1"
-                  >
-                    Download {report.year} 990 Filing
-                    <IconDownload size={16} />
+                <td
+                  role="cell"
+                  className="md:p-4 md:align-top md:whitespace-nowrap"
+                >
+                  <Link href={`/about/annual-reports/${report.year}`}>
+                    Read {report.year} Report
                   </Link>
                 </td>
                 <td
                   role="cell"
                   className="md:p-4 md:align-top md:whitespace-nowrap"
                 >
-                  <Link href={`/about/annual-reports/${report.year}`}>
-                    Read report
+                  <Link
+                    href={report.filing}
+                    download={`alveus-sanctuary-990-${report.year}.pdf`}
+                    className="inline-flex items-center gap-1"
+                  >
+                    Download 990 Filing
                     <span className="sr-only"> for {report.year}</span>
+                    <IconDownload size={16} />
                   </Link>
                 </td>
               </tr>
