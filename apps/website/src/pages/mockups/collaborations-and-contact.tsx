@@ -1,5 +1,6 @@
 import { type NextPage } from "next";
 import Image from "next/image";
+import { useRouter } from "next/router";
 import {
   Fragment,
   type ReactNode,
@@ -75,6 +76,8 @@ const years = collaborations.reduce<Map<string, Collaboration[]>>(
   new Map(),
 );
 
+const slugs = new Set(collaborations.map(({ slug }) => slug));
+
 const CollaborationCard = ({
   collaboration,
   query,
@@ -91,8 +94,9 @@ const CollaborationCard = ({
         )
       : undefined;
 
+  // Scroll margin clears the sticky year nav (two rows on phones)
   return (
-    <li id={collaboration.slug} className="scroll-mt-28">
+    <li id={collaboration.slug} className="scroll-mt-36 md:scroll-mt-24">
       <Box className="flex h-full flex-col p-0">
         <Link
           href={`https://www.youtube.com/watch?v=${collaboration.videoId}`}
@@ -130,19 +134,25 @@ const CollaborationCard = ({
               With {highlight(creatorMatch.name, query)}
             </p>
           )}
-          <p className="text-alveus-green-700">
-            {formatDateTime(collaboration.date, { style: "long" })}
-          </p>
-          {collaboration.vodId && (
-            <p>
+          {/* Date on the left, VoD on the right; wraps on narrow cards */}
+          <p className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            {/* Same deep link as the live page: the date points at #slug */}
+            <Link
+              href={`#${collaboration.slug}`}
+              custom
+              className="text-alveus-green-700 hover:underline"
+            >
+              {formatDateTime(collaboration.date, { style: "long" })}
+            </Link>
+            {collaboration.vodId && (
               <Link
                 href={`https://www.youtube.com/watch?v=${collaboration.vodId}&list=PLtQafKoimfLd6dM9CQqiLm79khNgxsoN3`}
                 external
               >
                 Full stream VoD
               </Link>
-            </p>
-          )}
+            )}
+          </p>
         </div>
       </Box>
     </li>
@@ -239,6 +249,38 @@ const CollaborationsView = () => {
       ),
     [],
   );
+
+  // Same as the live page: loading with #slug opens that collab's video
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (hash in lightboxItems) setLightboxOpen(hash);
+  }, [lightboxItems]);
+
+  // Deep links keep working during a search: if the linked collab is
+  // filtered out, clear the search, then scroll to it once it renders
+  const router = useRouter();
+  const [pendingSlug, setPendingSlug] = useState<string>();
+  useEffect(() => {
+    const onHash = () => {
+      const slug = decodeURIComponent(window.location.hash.slice(1));
+      if (!slugs.has(slug)) return;
+      if (document.getElementById(slug)) return;
+      setQuery("");
+      setPendingSlug(slug);
+    };
+    onHash();
+    window.addEventListener("hashchange", onHash);
+    router.events.on("hashChangeComplete", onHash);
+    return () => {
+      window.removeEventListener("hashchange", onHash);
+      router.events.off("hashChangeComplete", onHash);
+    };
+  }, [router.events]);
+  useEffect(() => {
+    if (!pendingSlug) return;
+    document.getElementById(pendingSlug)?.scrollIntoView();
+    setPendingSlug(undefined);
+  }, [pendingSlug, filtered]);
 
   return (
     <>
@@ -350,25 +392,33 @@ const CollaborationsView = () => {
 
 type ContactLink = { text: string; href: string; external?: boolean };
 
+// One labelled piece of a card: a line of live text, then an email,
+// a single link, or a row of link buttons
+type ContactPart = {
+  text: string;
+  email?: string;
+  link?: ContactLink;
+  buttons?: ContactLink[];
+};
+
 type ContactCategory = {
   key: string;
   name: string;
   // Text and links copied from the live contact page
-  description?: string;
-  emails: string[];
-  // Labelled links shown in the dark inner box (merch)
-  inner?: { label: string; link: ContactLink }[];
-  // Text shown above the buttons
-  note?: string;
-  buttons: ContactLink[];
+  parts: ContactPart[];
+  // Show the text small, as the live page does for the GitHub/security note
+  small?: boolean;
+  // Buttons pinned to the bottom of the card
+  buttons?: ContactLink[];
 };
 
 const categories: ContactCategory[] = [
   {
     key: "donors",
     name: "Donors",
-    description: "For donor inquiries:",
-    emails: ["contact@alveussanctuary.org"],
+    parts: [
+      { text: "For donor inquiries:", email: "contact@alveussanctuary.org" },
+    ],
     buttons: [
       { text: "Donate", href: "/donate" },
       { text: "PO Box", href: "/po-box" },
@@ -377,17 +427,14 @@ const categories: ContactCategory[] = [
   {
     key: "business",
     name: "Business",
-    description: "For business inquiries:",
-    emails: ["alveus@loaded.gg"],
-    buttons: [],
+    parts: [{ text: "For business inquiries:", email: "alveus@loaded.gg" }],
   },
   {
     key: "merch",
     name: "Merch",
-    emails: [],
-    inner: [
+    parts: [
       {
-        label: "For merch inquiries:",
+        text: "For merch inquiries:",
         link: {
           text: "shop.alveussanctuary.org/pages/contact",
           href: "https://shop.alveussanctuary.org/pages/contact",
@@ -395,7 +442,7 @@ const categories: ContactCategory[] = [
         },
       },
       {
-        label: "For plushie inquiries:",
+        text: "For plushie inquiries:",
         link: {
           text: "youtooz.com/pages/contact-us",
           href: "https://youtooz.com/pages/contact-us",
@@ -403,40 +450,51 @@ const categories: ContactCategory[] = [
         },
       },
     ],
-    buttons: [],
   },
   {
     key: "grants",
     name: "Grants",
-    description: "For foundation & corporate grants:",
-    emails: ["grants@alveussanctuary.org"],
+    parts: [
+      {
+        text: "For foundation & corporate grants:",
+        email: "grants@alveussanctuary.org",
+      },
+    ],
     buttons: [{ text: "Funding priorities", href: "/donate/grants" }],
   },
   {
     key: "collaboration",
     name: "Collaboration",
-    description:
-      "To connect with Maya regarding collaboration or to offer support for Alveus Sanctuary:",
-    emails: ["mayahiga@alveussanctuary.org"],
-    buttons: [],
+    parts: [
+      {
+        text: "To connect with Maya regarding collaboration or to offer support for Alveus Sanctuary:",
+        email: "mayahiga@alveussanctuary.org",
+      },
+    ],
   },
   {
     key: "security",
     name: "Security and tech",
-    description:
-      "If you discover a security vulnerability within the website, or any of our other open-source projects, please email us:",
-    emails: ["opensource@alveussanctuary.org"],
-    note: "For issues with the website or Twitch extension, please open an issue on GitHub:",
-    buttons: [
+    small: true,
+    parts: [
       {
-        text: "Website",
-        href: "https://github.com/alveusgg/alveusgg/issues/new/choose",
-        external: true,
+        text: "For issues with the website or Twitch extension, please open an issue on GitHub:",
+        buttons: [
+          {
+            text: "Website",
+            href: "https://github.com/alveusgg/alveusgg/issues/new/choose",
+            external: true,
+          },
+          {
+            text: "Twitch Extension",
+            href: "https://github.com/alveusgg/extension/issues/new/choose",
+            external: true,
+          },
+        ],
       },
       {
-        text: "Twitch Extension",
-        href: "https://github.com/alveusgg/extension/issues/new/choose",
-        external: true,
+        text: "If you discover a security vulnerability within the website, or any of our other open-source projects, please email us:",
+        email: "opensource@alveussanctuary.org",
       },
     ],
   },
@@ -446,7 +504,9 @@ const categories: ContactCategory[] = [
 const contactButtonClasses =
   "inline-flex items-center gap-2 rounded-lg bg-alveus-tan px-3 py-1.5 text-alveus-green-900 transition-colors hover:bg-alveus-tan-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-tan motion-reduce:transition-none";
 
-const innerBoxClasses = "rounded-xl bg-alveus-green-800 p-3";
+// Tan text on the green card, underlined so it reads as a link
+const contactLinkClasses =
+  "font-serif text-base font-bold text-alveus-tan underline decoration-alveus-tan/60 underline-offset-2 transition-colors wrap-anywhere hover:decoration-alveus-tan focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-tan motion-reduce:transition-none sm:text-lg";
 
 // Let long addresses wrap at "@", "." and "/" rather than mid-word
 const withBreaks = (text: string) =>
@@ -463,11 +523,11 @@ const EmailRow = ({ email }: { email: string }) => {
     status === "success" ? "Copied" : status === "error" ? "Copy failed" : "";
 
   return (
-    <div className={classes(innerBoxClasses, "flex items-center gap-2")}>
+    <div className="flex items-center gap-1">
       <Link
         href={`mailto:${email}`}
-        dark
-        className="min-w-0 grow font-serif text-base font-bold wrap-anywhere sm:text-lg"
+        custom
+        className={classes(contactLinkClasses, "min-w-0")}
       >
         {withBreaks(email)}
       </Link>
@@ -498,20 +558,6 @@ const EmailRow = ({ email }: { email: string }) => {
   );
 };
 
-const wideKeys = ["merch", "security"];
-const gridCategories = categories.filter(({ key }) => !wideKeys.includes(key));
-const merch = categories.find(({ key }) => key === "merch");
-const security = categories.find(({ key }) => key === "security");
-
-const CategoryIntro = ({ category }: { category: ContactCategory }) => (
-  <div>
-    <Heading level={2} className="my-0 text-2xl">
-      {category.name}
-    </Heading>
-    {category.description && <p className="mt-1">{category.description}</p>}
-  </div>
-);
-
 const ContactButtons = ({
   links,
   className,
@@ -520,7 +566,7 @@ const ContactButtons = ({
   className?: string;
 }) =>
   links.length > 0 ? (
-    <ul className={classes("flex flex-wrap gap-2 pt-1", className)}>
+    <ul className={classes("flex flex-wrap gap-2", className)}>
       {links.map((link) => (
         <li key={link.href}>
           <Link
@@ -552,67 +598,59 @@ const ContactView = () => (
       We are not openly hiring.
     </p>
 
-    {/* Four equal cards: 1, 2 or 4 per row, so no row has an empty slot */}
-    <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      {gridCategories.map((category) => (
+    {/* Six equal cards: 1, 2 or 3 per row, so no row has an empty slot */}
+    <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {categories.map((category) => (
         <li key={category.key} id={`contact-${category.key}`}>
-          <Box dark className="flex h-full flex-col gap-3 p-5">
-            <CategoryIntro category={category} />
-            {category.emails.map((email) => (
-              <EmailRow key={email} email={email} />
+          <Box dark className="flex h-full flex-col gap-4 p-5">
+            <Heading level={2} className="my-0 text-2xl">
+              {category.name}
+            </Heading>
+
+            {category.parts.map((part) => (
+              <div
+                key={part.text}
+                className={classes(
+                  "flex flex-col gap-1",
+                  category.small && "text-sm",
+                )}
+              >
+                <p>{part.text}</p>
+                {part.email && <EmailRow email={part.email} />}
+                {part.link && (
+                  <Link
+                    href={part.link.href}
+                    external={part.link.external}
+                    custom
+                    className={contactLinkClasses}
+                  >
+                    {withBreaks(part.link.text)}
+                    {part.link.external && (
+                      <>
+                        <IconExternal
+                          size={14}
+                          aria-hidden="true"
+                          className="ml-1 inline-block"
+                        />
+                        <span className="sr-only"> (opens in a new tab)</span>
+                      </>
+                    )}
+                  </Link>
+                )}
+                {part.buttons && (
+                  <ContactButtons links={part.buttons} className="mt-1" />
+                )}
+              </div>
             ))}
+
             {/* Buttons sit on the bottom edge so they line up across a row */}
-            <ContactButtons links={category.buttons} className="mt-auto" />
+            {category.buttons && (
+              <ContactButtons links={category.buttons} className="mt-auto" />
+            )}
           </Box>
         </li>
       ))}
     </ul>
-
-    {/* Merch and Security have more content, so each gets a full-width row */}
-    {merch && (
-      <div id="contact-merch" className="mt-4">
-        <Box dark className="flex flex-col gap-3 p-5">
-          <CategoryIntro category={merch} />
-          <ul className={classes(innerBoxClasses, "grid gap-3 md:grid-cols-2")}>
-            {merch.inner?.map(({ label, link }) => (
-              <li key={link.href}>
-                <p className="text-sm">{label}</p>
-                <Link
-                  href={link.href}
-                  external={link.external}
-                  dark
-                  className="font-serif text-base font-bold wrap-anywhere sm:text-lg"
-                >
-                  {withBreaks(link.text)}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Box>
-      </div>
-    )}
-
-    {security && (
-      <div id="contact-security" className="mt-4">
-        <Box dark className="p-5">
-          <Heading level={2} className="my-0 text-2xl">
-            {security.name}
-          </Heading>
-          <div className="mt-3 grid gap-6 md:grid-cols-2">
-            <div className="flex flex-col gap-3">
-              {security.description && <p>{security.description}</p>}
-              {security.emails.map((email) => (
-                <EmailRow key={email} email={email} />
-              ))}
-            </div>
-            <div className="flex flex-col gap-3">
-              {security.note && <p>{security.note}</p>}
-              <ContactButtons links={security.buttons} />
-            </div>
-          </div>
-        </Box>
-      </div>
-    )}
   </Section>
 );
 
