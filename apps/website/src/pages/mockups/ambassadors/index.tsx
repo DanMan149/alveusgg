@@ -13,7 +13,6 @@ import { classes } from "@/utils/classes";
 import { typeSafeObjectEntries } from "@/utils/helpers";
 import { camelToKebab } from "@/utils/string-case";
 
-import Button from "@/components/content/Button";
 import Heading from "@/components/content/Heading";
 import Link from "@/components/content/Link";
 import Meta from "@/components/content/Meta";
@@ -56,9 +55,9 @@ const AmbassadorsMockupPage: NextPage = () => {
       <div className="-mt-40 hidden h-40 bg-alveus-green-900 lg:block" />
 
       <MockupNotice>
-        Hover or focus a card to see Meet and, where the ambassador data has
-        one, its Did you know? fact. On touch, cards with a fact tap once to
-        preview and again to open.
+        Each card shows an arrow to open it. Hover or focus a card for its Did
+        you know? fact, where the ambassador data has one. On touch, cards with
+        a fact tap once to preview and again to open.
       </MockupNotice>
 
       <Section dark className="py-16">
@@ -129,37 +128,31 @@ const AmbassadorsMockupPage: NextPage = () => {
                       )}
                       style={{ objectPosition: image.position }}
                     />
-                    {/* Every card shows the same "Meet" affordance on hover,
-                        focus or first tap; cards with a fact add it behind */}
-                    <div
-                      className={classes(
-                        "absolute inset-0 flex flex-col justify-end gap-1 p-4 text-alveus-tan transition-opacity motion-reduce:transition-none",
-                        fact && "bg-alveus-green-900/90",
-                        armed === key
-                          ? "opacity-100"
-                          : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
-                      )}
-                    >
-                      {fact && (
-                        <span id={factId} className="flex flex-col gap-1">
-                          <span className="font-serif text-lg font-bold">
-                            Did you know?
-                          </span>
-                          <span className="line-clamp-4 text-sm">{fact}</span>
-                        </span>
-                      )}
-                      {/* A span, not a link, as the whole card is already the link */}
-                      <Button
-                        as="span"
-                        dark
-                        filled
+                    {fact && (
+                      // Hidden from the link name, read as its description
+                      <div
+                        id={factId}
                         aria-hidden="true"
-                        className="mt-2 inline-flex items-center gap-2 self-start px-3 py-1 text-base"
+                        className={classes(
+                          "absolute inset-0 flex flex-col justify-end gap-1 bg-alveus-green-900/90 p-4 pb-14 text-alveus-tan transition-opacity motion-reduce:transition-none",
+                          armed === key
+                            ? "opacity-100"
+                            : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
+                        )}
                       >
-                        Meet {ambassador.name}
-                        <IconArrowRight size={16} />
-                      </Button>
-                    </div>
+                        <span className="font-serif text-lg font-bold">
+                          Did you know?
+                        </span>
+                        <span className="line-clamp-4 text-sm">{fact}</span>
+                      </div>
+                    )}
+                    {/* Always visible so touch users see the card opens too */}
+                    <span
+                      aria-hidden="true"
+                      className="absolute right-3 bottom-3 flex size-9 items-center justify-center rounded-full bg-alveus-tan text-alveus-green-900"
+                    >
+                      <IconArrowRight size={18} />
+                    </span>
                   </div>
                   <Heading
                     level={2}
