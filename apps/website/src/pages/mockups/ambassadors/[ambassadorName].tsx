@@ -35,9 +35,7 @@ import PartialDateDiff from "@/components/content/PartialDateDiff";
 import Section from "@/components/content/Section";
 import { YouTubeEmbed, YouTubePreview } from "@/components/content/YouTube";
 import MockupNotice from "@/components/mockups/MockupNotice";
-
-import IconChevronLeft from "@/icons/IconChevronLeft";
-import IconChevronRight from "@/icons/IconChevronRight";
+import PrevNextNav from "@/components/mockups/PrevNextNav";
 
 import { activeAmbassadors } from "@/pages/mockups/ambassadors";
 
@@ -59,6 +57,23 @@ export const getStaticProps: GetStaticProps<Props> = async (context) => {
 };
 
 const mockupHref = (key: string) => `/mockups/ambassadors/${camelToKebab(key)}`;
+
+const prevNextItem = ([key, other]: (typeof activeAmbassadors)[number]) => {
+  const thumb = getAmbassadorImages(key)[0];
+  return {
+    label: other.name,
+    href: mockupHref(key),
+    image: (
+      <Image
+        src={thumb.src}
+        alt=""
+        width={96}
+        className="size-10 shrink-0 rounded-lg object-cover"
+        style={{ objectPosition: thumb.position }}
+      />
+    ),
+  };
+};
 
 const stringifyLifespan = (value: number | { min: number; max: number }) =>
   typeof value === "number" ? `${value}` : `${value.min}-${value.max}`;
@@ -332,49 +347,12 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
           <div className="basis-full lg:basis-1/2" />
 
           <div className="flex basis-full flex-col py-4 lg:max-w-1/2 lg:basis-1/2 lg:px-8 lg:pt-8">
-            <nav
-              aria-label="Ambassadors"
-              className="mb-4 flex items-stretch justify-between gap-4"
-            >
-              {[
-                { entry: prev, label: "Previous", align: "left" },
-                { entry: next, label: "Next", align: "right" },
-              ].map(({ entry: [key, other], label, align }) => {
-                const thumb = getAmbassadorImages(key)[0];
-                return (
-                  <Link
-                    key={label}
-                    href={mockupHref(key)}
-                    custom
-                    className={classes(
-                      "flex min-w-0 items-center gap-3 rounded-xl border border-alveus-green-200 bg-alveus-tan-50 p-2 transition-colors hover:border-alveus-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700",
-                      align === "right" && "flex-row-reverse text-right",
-                    )}
-                  >
-                    {align === "left" ? (
-                      <IconChevronLeft className="size-5 shrink-0" />
-                    ) : (
-                      <IconChevronRight className="size-5 shrink-0" />
-                    )}
-                    <Image
-                      src={thumb.src}
-                      alt=""
-                      width={96}
-                      className="size-10 shrink-0 rounded-lg object-cover"
-                      style={{ objectPosition: thumb.position }}
-                    />
-                    <span className="min-w-0">
-                      <span className="block text-sm text-alveus-green-700">
-                        {label}
-                      </span>
-                      <span className="block truncate font-serif text-lg font-bold">
-                        {other.name}
-                      </span>
-                    </span>
-                  </Link>
-                );
-              })}
-            </nav>
+            <PrevNextNav
+              label="Ambassadors"
+              previous={prevNextItem(prev)}
+              next={prevNextItem(next)}
+              className="mb-4"
+            />
 
             <Heading className="text-5xl">{ambassador.name}</Heading>
             {!!ambassador.alternate.length && (

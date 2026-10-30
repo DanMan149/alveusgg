@@ -13,11 +13,14 @@ import { classes } from "@/utils/classes";
 import { typeSafeObjectEntries } from "@/utils/helpers";
 import { camelToKebab } from "@/utils/string-case";
 
+import Button from "@/components/content/Button";
 import Heading from "@/components/content/Heading";
 import Link from "@/components/content/Link";
 import Meta from "@/components/content/Meta";
 import Section from "@/components/content/Section";
 import MockupNotice from "@/components/mockups/MockupNotice";
+
+import IconArrowRight from "@/icons/IconArrowRight";
 
 // Same list and order as the live /ambassadors page
 export const activeAmbassadors = typeSafeObjectEntries(ambassadors).filter(
@@ -53,7 +56,8 @@ const AmbassadorsMockupPage: NextPage = () => {
       <div className="-mt-40 hidden h-40 bg-alveus-green-900 lg:block" />
 
       <MockupNotice>
-        Hover or focus a card for its Did you know? fact. On touch, tap once to
+        Hover or focus a card to see Meet and, where the ambassador data has
+        one, its Did you know? fact. On touch, cards with a fact tap once to
         preview and again to open.
       </MockupNotice>
 
@@ -125,22 +129,37 @@ const AmbassadorsMockupPage: NextPage = () => {
                       )}
                       style={{ objectPosition: image.position }}
                     />
-                    {fact && (
-                      <div
-                        id={factId}
-                        className={classes(
-                          "absolute inset-0 flex flex-col justify-end gap-1 bg-alveus-green-900/90 p-4 text-alveus-tan transition-opacity motion-reduce:transition-none",
-                          armed === key
-                            ? "opacity-100"
-                            : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
-                        )}
-                      >
-                        <span className="font-serif text-lg font-bold">
-                          Did you know?
+                    {/* Every card shows the same "Meet" affordance on hover,
+                        focus or first tap; cards with a fact add it behind */}
+                    <div
+                      className={classes(
+                        "absolute inset-0 flex flex-col justify-end gap-1 p-4 text-alveus-tan transition-opacity motion-reduce:transition-none",
+                        fact && "bg-alveus-green-900/90",
+                        armed === key
+                          ? "opacity-100"
+                          : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
+                      )}
+                    >
+                      {fact && (
+                        <span id={factId} className="flex flex-col gap-1">
+                          <span className="font-serif text-lg font-bold">
+                            Did you know?
+                          </span>
+                          <span className="line-clamp-4 text-sm">{fact}</span>
                         </span>
-                        <span className="line-clamp-5 text-sm">{fact}</span>
-                      </div>
-                    )}
+                      )}
+                      {/* A span, not a link, as the whole card is already the link */}
+                      <Button
+                        as="span"
+                        dark
+                        filled
+                        aria-hidden="true"
+                        className="mt-2 inline-flex items-center gap-2 self-start px-3 py-1 text-base"
+                      >
+                        Meet {ambassador.name}
+                        <IconArrowRight size={16} />
+                      </Button>
+                    </div>
                   </div>
                   <Heading
                     level={2}
