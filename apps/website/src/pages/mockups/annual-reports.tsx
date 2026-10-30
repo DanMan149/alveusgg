@@ -11,20 +11,19 @@ import MockupNotice from "@/components/mockups/MockupNotice";
 
 import IconDownload from "@/icons/IconDownload";
 
-// Sentences copied verbatim from each year's report text
-// (src/data/annual-reports.tsx). The 2022 report has no summary text.
-// The PR keeps these on the report entries in the data file instead.
-const summaries: Record<number, string | null> = {
-  2024: "Alveus hosted over 30 content creators for collaborations that reached millions of people around the world.",
-  2023: "We also hosted 20 content collaborations with creators from across the United States.",
-  2022: null,
-  2021: "In 2021, the majority (67.30%) of funds were dedicated to development of the facility.",
+// Same summaries as the PR, which keeps them on the report entries
+// in src/data/annual-reports.tsx instead
+const summaries: Record<number, string> = {
+  2024: "Alveus reached over 100 million people across platforms, while the community spent 9,000+ hours connecting with the outdoors through volunteering and exploring.",
+  2023: "Through 20 creator collaborations and educational programming, Alveus brought conservation messaging to audiences around the globe.",
+  2022: "Across Twitch, Alveus streams drew 2.65 million live views and a peak audience of 18,689, with 50.3 million minutes watched in total.",
+  2021: "In 2021, Alveus reached 68,600 Twitch followers, sharing conservation education with a primarily U.S. audience and expanding around the world.",
 };
 
 const reports = reportYears.map((year) => ({
   year,
   filing: getReport(year).filing,
-  summary: summaries[year] ?? null,
+  summary: summaries[year],
 }));
 
 const LatestBadge = () => (
@@ -57,7 +56,8 @@ const AnnualReportsMockupPage: NextPage = () => (
     </Section>
 
     <Section className="grow">
-      <div className="rounded-2xl border border-alveus-green-200 bg-alveus-tan-50">
+      {/* overflow-hidden clips the header background to the rounded corners */}
+      <div className="overflow-hidden rounded-2xl border border-alveus-green-200 bg-alveus-tan-50">
         {/* Explicit roles keep the table semantics when rows stack on phones
             (display: block otherwise drops them in some browsers) */}
         <table role="table" className="block w-full text-left md:table">
@@ -69,11 +69,7 @@ const AnnualReportsMockupPage: NextPage = () => (
             role="rowgroup"
             className="sr-only bg-alveus-green-100 text-sm text-alveus-green-800 md:not-sr-only md:table-header-group"
           >
-            {/* Outer corners follow the container's radius, minus its border */}
-            <tr
-              role="row"
-              className="[&>th:first-child]:rounded-tl-[calc(var(--radius-2xl)-1px)] [&>th:last-child]:rounded-tr-[calc(var(--radius-2xl)-1px)]"
-            >
+            <tr role="row">
               <th role="columnheader" scope="col" className="px-4 py-3">
                 Year
               </th>
@@ -108,10 +104,7 @@ const AnnualReportsMockupPage: NextPage = () => (
                     {idx === 0 && <LatestBadge />}
                   </span>
                 </th>
-                <td
-                  role="cell"
-                  className="empty:hidden md:max-w-md md:p-4 md:align-top md:empty:table-cell"
-                >
+                <td role="cell" className="md:max-w-md md:p-4 md:align-top">
                   {report.summary}
                 </td>
                 <td
