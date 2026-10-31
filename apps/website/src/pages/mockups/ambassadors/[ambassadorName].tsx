@@ -36,6 +36,10 @@ import Section from "@/components/content/Section";
 import { YouTubeEmbed, YouTubePreview } from "@/components/content/YouTube";
 import MockupNotice from "@/components/mockups/MockupNotice";
 import PrevNextNav from "@/components/mockups/PrevNextNav";
+import { underlineTabClassName } from "@/components/mockups/ViewTabs";
+
+import IconTwitch from "@/icons/IconTwitch";
+import IconYouTube from "@/icons/IconYouTube";
 
 import { activeAmbassadors } from "@/pages/mockups/ambassadors";
 
@@ -199,6 +203,254 @@ const getStats = (ambassador: Ambassador): Stats => {
   ];
 };
 
+/* Highlights: Alveus Clips playlist, curated clips, or a thin live strip */
+
+type Clip = { id: string; caption: string };
+
+// Ambassadors that share one playlist on the Alveus Clips channel
+const sharedPlaylists: AmbassadorKey[][] = [
+  ["abbott", "coconut"],
+  ["noodle", "patchy"],
+  ["snork", "moomin"],
+  ["appa", "momo"],
+  ["serrano", "jalapeno"],
+  ["stompy", "nolie"],
+  ["mia", "tipsy"],
+  ["tico", "miley"],
+  ["fenn", "reed"],
+];
+
+// Placeholder: the real link will be the ambassador's playlist on the channel
+const playlistHref = "https://www.youtube.com/@AlveusClips/playlists";
+const twitchHref = "https://www.twitch.tv/alveussanctuary";
+
+// Clearly fake view counts, highest first (playlists will be sorted by views)
+const sampleViews = ["45,678", "34,567", "23,456", "12,345"];
+
+const previewStates = {
+  playlist: "Playlist",
+  shared: "Shared playlist",
+  fewer: "Fewer than 4 clips",
+  curated: "Curated clips, no playlist",
+  strip: "No clips (thin strip)",
+  retiredPlaylist: "Retired with playlist",
+  retiredCurated: "Retired, curated clips",
+  retiredNone: "Retired, no clips (shows nothing)",
+} as const;
+type PreviewState = keyof typeof previewStates;
+
+const listFormat = new Intl.ListFormat("en", {
+  style: "long",
+  type: "conjunction",
+});
+
+const uniqueClips = (clips: readonly Clip[]) =>
+  clips.filter(
+    (item, idx) => clips.findIndex((other) => other.id === item.id) === idx,
+  );
+
+const MockupHighlights = ({
+  ambassadorKey,
+  ambassador,
+  enclosureMates,
+}: {
+  ambassadorKey: AmbassadorKey;
+  ambassador: Ambassador;
+  enclosureMates: AmbassadorKey[];
+}) => {
+  // Real shared playlist if there is one, otherwise an enclosure mate as an example
+  const group = useMemo(
+    () =>
+      sharedPlaylists.find((keys) => keys.includes(ambassadorKey)) ?? [
+        ambassadorKey,
+        ...enclosureMates.slice(0, 1),
+      ],
+    [ambassadorKey, enclosureMates],
+  );
+  const isShared = sharedPlaylists.some((keys) => keys.includes(ambassadorKey));
+
+  // Sample clips: own curated clips first, then the group's, then everyone else's
+  const sampleClips = useMemo(
+    () =>
+      uniqueClips([
+        ...ambassador.clips,
+        ...group.flatMap<Clip>((key) => ambassadors[key].clips),
+        ...Object.values<Ambassador>(ambassadors).flatMap<Clip>(
+          (other) => other.clips,
+        ),
+      ]),
+    [ambassador.clips, group],
+  );
+
+  const [state, setState] = useState<PreviewState>(
+    isShared ? "shared" : ambassador.clips.length ? "playlist" : "strip",
+  );
+
+  const retired = state.startsWith("retired");
+  const tier =
+    state === "strip" || state === "retiredNone"
+      ? "none"
+      : state === "curated" || state === "retiredCurated"
+        ? "curated"
+        : "playlist";
+
+  const clips = useMemo<readonly Clip[]>(() => {
+    if (tier === "none") return [];
+    if (tier === "curated")
+      return ambassador.clips.length
+        ? ambassador.clips
+        : sampleClips.slice(0, 2);
+    return sampleClips.slice(0, state === "fewer" ? 3 : 4);
+  }, [tier, state, ambassador.clips, sampleClips]);
+
+  const playlistNames = listFormat.format(
+    (state === "shared" ? group : [ambassadorKey]).map(
+      (key) => ambassadors[key].name,
+    ),
+  );
+
+  const [lightboxOpen, setLightboxOpen] = useState<string>();
+  const lightboxItems = useMemo(
+    () =>
+      clips.reduce<Record<string, ReactNode>>(
+        (acc, item) => ({
+          ...acc,
+          [item.id]: <YouTubeEmbed videoId={item.id} caption={item.caption} />,
+        }),
+        {},
+      ),
+    [clips],
+  );
+
+  const liveButton = !retired && (
+    <Button
+      dark
+      href={twitchHref}
+      external
+      className="inline-flex items-center gap-3 text-left"
+    >
+      <IconTwitch aria-hidden="true" className="shrink-0" />
+      <span>Watch {ambassador.name} live on stream right now</span>
+      <span className="sr-only"> (opens in a new tab)</span>
+    </Button>
+  );
+
+  return (
+    <>
+      {/* Mockup only, not part of the design */}
+      <div className="bg-alveus-green-100">
+        <div
+          role="group"
+          aria-label="Preview state (mockup only)"
+          className="container mx-auto flex flex-wrap items-center gap-x-2 px-4"
+        >
+          <span className="mr-2 text-sm text-alveus-green-700">
+            Preview state (mockup only, sample data):
+          </span>
+          {(Object.keys(previewStates) as PreviewState[]).map((key) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={state === key}
+              onClick={() => setState(key)}
+              className={underlineTabClassName(state === key)}
+            >
+              {previewStates[key]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {tier === "none" ? (
+        // Thin strip with only the live button (nothing at all when retired)
+        liveButton && (
+          <Section
+            dark
+            className="bg-alveus-green-800 py-4"
+            containerClassName="flex justify-center"
+          >
+            {liveButton}
+          </Section>
+        )
+      ) : (
+        <Section dark className="bg-alveus-green-800">
+          <Heading
+            level={2}
+            id="highlights"
+            className="mt-0 mb-8 text-center text-4xl"
+          >
+            {ambassador.name}&apos;s Highlights
+          </Heading>
+
+          <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            {clips.map((item, idx) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  onClick={() => setLightboxOpen(item.id)}
+                  className="group flex w-full flex-col gap-3 rounded-xl text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-alveus-tan"
+                >
+                  <span className="relative block w-full">
+                    <YouTubePreview
+                      videoId={item.id}
+                      alt=""
+                      icon={false}
+                      className="aspect-video h-auto w-full rounded-xl object-cover shadow-none group-hover/trigger:scale-100 group-hover/trigger:shadow-none"
+                    />
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-0 m-auto flex size-14 items-center justify-center rounded-full bg-alveus-green-900/85 text-alveus-tan"
+                    >
+                      <IconYouTube size={28} />
+                    </span>
+                  </span>
+                  <span className="flex flex-col gap-1">
+                    <span className="text-lg font-bold text-balance group-hover:underline">
+                      <span className="sr-only">Play video: </span>
+                      {item.caption}
+                    </span>
+                    {tier === "playlist" && (
+                      <span className="text-sm text-alveus-green-200">
+                        <span className="sr-only">, </span>
+                        {sampleViews[idx]} views
+                      </span>
+                    )}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          {(tier === "playlist" || liveButton) && (
+            // Equal-height rows when stacked on phones, side by side from sm up
+            <div className="mt-10 grid auto-rows-fr gap-4 sm:flex sm:flex-row sm:items-stretch sm:justify-center">
+              {tier === "playlist" && (
+                <Button
+                  dark
+                  href={playlistHref}
+                  external
+                  className="inline-flex items-center gap-3 text-left"
+                >
+                  <IconYouTube aria-hidden="true" className="shrink-0" />
+                  <span>Watch more clips of {playlistNames} here</span>
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </Button>
+              )}
+              {liveButton}
+            </div>
+          )}
+
+          <Lightbox
+            open={lightboxOpen}
+            onClose={() => setLightboxOpen(undefined)}
+            items={lightboxItems}
+          />
+        </Section>
+      )}
+    </>
+  );
+};
+
 const AmbassadorMockup = ({ ambassadorKey }: Props) => {
   const ambassador: Ambassador = ambassadors[ambassadorKey];
   const enclosure = enclosures[ambassador.enclosure];
@@ -297,22 +549,6 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
     [images],
   );
 
-  /* Highlights: featured player plus strip, opening in the lightbox */
-  const [clip, setClip] = useState(0);
-  const [clipsLightboxOpen, setClipsLightboxOpen] = useState<string>();
-  const featuredClip = ambassador.clips[clip];
-  const clipsLightboxItems = useMemo(
-    () =>
-      ambassador.clips.reduce<Record<string, ReactNode>>(
-        (acc, item) => ({
-          ...acc,
-          [item.id]: <YouTubeEmbed videoId={item.id} caption={item.caption} />,
-        }),
-        {},
-      ),
-    [ambassador.clips],
-  );
-
   return (
     <>
       <Meta
@@ -325,7 +561,12 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
       {/* Nav background */}
       <div className="-mt-40 hidden h-40 bg-alveus-green-900 lg:block" />
 
-      <MockupNotice>All details come from the ambassador data.</MockupNotice>
+      <MockupNotice>
+        All details come from the ambassador data, except Highlights, which use
+        sample data: this ambassador&apos;s curated clips (topped up with other
+        ambassadors&apos; clips where needed), made-up view counts and a
+        placeholder playlist link.
+      </MockupNotice>
 
       {/* Full-height sticky photo layout from the live ambassador page */}
       <div className="relative">
@@ -514,88 +755,11 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
         </Section>
       </div>
 
-      {featuredClip && (
-        <Section dark className="bg-alveus-green-800">
-          <Heading
-            level={2}
-            id="highlights"
-            className="mt-0 mb-8 text-center text-4xl"
-          >
-            {ambassador.name}&apos;s Highlights
-          </Heading>
-
-          <div
-            className={classes(
-              "grid gap-6",
-              ambassador.clips.length > 1
-                ? "lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
-                : "mx-auto max-w-3xl",
-            )}
-          >
-            <div>
-              {/* Same lightbox trigger as the live highlights */}
-              <Link
-                href={`https://www.youtube.com/watch?v=${featuredClip.id}`}
-                external
-                custom
-                onClick={(e) => {
-                  e.preventDefault();
-                  setClipsLightboxOpen(featuredClip.id);
-                }}
-                className="group/trigger block w-full overflow-hidden rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-tan"
-              >
-                <YouTubePreview
-                  videoId={featuredClip.id}
-                  alt={`Play ${featuredClip.caption}`}
-                  className="aspect-video h-auto w-full object-cover"
-                />
-              </Link>
-              <p className="mt-3 text-center text-xl">{featuredClip.caption}</p>
-            </div>
-
-            {ambassador.clips.length > 1 && (
-              <ul className="flex flex-col gap-2">
-                {ambassador.clips.map((item, clipIdx) => (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      onClick={() => setClip(clipIdx)}
-                      aria-current={clip === clipIdx ? "true" : undefined}
-                      className={classes(
-                        "grid w-full grid-cols-[7rem_minmax(0,1fr)] items-center gap-3 rounded-lg border p-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-alveus-tan",
-                        clip === clipIdx
-                          ? "border-alveus-tan bg-alveus-green-900"
-                          : "border-alveus-green-600 hover:bg-alveus-green-900",
-                      )}
-                    >
-                      <YouTubePreview
-                        videoId={item.id}
-                        alt=""
-                        icon={false}
-                        className="aspect-video h-auto w-full rounded-md object-cover"
-                      />
-                      <span>
-                        {clip === clipIdx && (
-                          <span className="block text-xs tracking-wide text-alveus-green-200 uppercase">
-                            Now featured
-                          </span>
-                        )}
-                        {item.caption}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <Lightbox
-            open={clipsLightboxOpen}
-            onClose={() => setClipsLightboxOpen(undefined)}
-            items={clipsLightboxItems}
-          />
-        </Section>
-      )}
+      <MockupHighlights
+        ambassadorKey={ambassadorKey}
+        ambassador={ambassador}
+        enclosureMates={others.map(([key]) => key)}
+      />
 
       {/* Compact row, hidden when the ambassador lives alone */}
       {others.length > 0 && (
