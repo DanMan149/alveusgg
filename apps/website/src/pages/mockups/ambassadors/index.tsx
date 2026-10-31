@@ -55,9 +55,9 @@ const AmbassadorsMockupPage: NextPage = () => {
       <div className="-mt-40 hidden h-40 bg-alveus-green-900 lg:block" />
 
       <MockupNotice>
-        Each card shows an arrow to open it. Hover or focus a card for its Did
-        you know? fact, where the ambassador data has one. On touch, cards with
-        a fact tap once to preview and again to open.
+        Hover or focus a card to dim it and show an arrow, plus its Did you
+        know? fact where the ambassador data has one. On touch, cards with a
+        fact tap once to preview and again to open.
       </MockupNotice>
 
       <Section dark className="py-16">
@@ -128,31 +128,32 @@ const AmbassadorsMockupPage: NextPage = () => {
                       )}
                       style={{ objectPosition: image.position }}
                     />
-                    {fact && (
-                      // Hidden from the link name, read as its description
-                      <div
-                        id={factId}
-                        aria-hidden="true"
-                        className={classes(
-                          "absolute inset-0 flex flex-col justify-end gap-1 bg-alveus-green-900/90 p-4 pb-14 text-alveus-tan transition-opacity motion-reduce:transition-none",
-                          armed === key
-                            ? "opacity-100"
-                            : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
-                        )}
-                      >
-                        <span className="font-serif text-lg font-bold">
-                          Did you know?
-                        </span>
-                        <span className="line-clamp-4 text-sm">{fact}</span>
-                      </div>
-                    )}
-                    {/* Always visible so touch users see the card opens too */}
-                    <span
+                    {/* Every card dims and shows the arrow on hover or focus;
+                        only the fact text depends on the data. Hidden from the
+                        link name, the fact is read as its description. */}
+                    <div
+                      id={fact ? factId : undefined}
                       aria-hidden="true"
-                      className="absolute right-3 bottom-3 flex size-9 items-center justify-center rounded-full bg-alveus-tan text-alveus-green-900"
+                      className={classes(
+                        "absolute inset-0 flex flex-col justify-end gap-1 bg-alveus-green-900/90 p-4 pb-12 text-alveus-tan transition-opacity duration-200 motion-reduce:transition-none",
+                        armed === key
+                          ? "opacity-100"
+                          : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
+                      )}
                     >
-                      <IconArrowRight size={18} />
-                    </span>
+                      {fact && (
+                        <span className="flex flex-col gap-1">
+                          <span className="font-serif text-lg font-bold">
+                            Did you know?
+                          </span>
+                          <span className="line-clamp-4 text-sm">{fact}</span>
+                        </span>
+                      )}
+                      <IconArrowRight
+                        size={24}
+                        className="absolute right-4 bottom-4"
+                      />
+                    </div>
                   </div>
                   <Heading
                     level={2}
