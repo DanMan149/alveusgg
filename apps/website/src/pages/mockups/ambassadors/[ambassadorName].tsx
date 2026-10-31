@@ -309,17 +309,27 @@ const MockupHighlights = ({
     ),
   );
 
+  // Alveus Clips playlists are all YouTube Shorts (vertical); curated clips are landscape
+  const vertical = tier === "playlist";
+
   const [lightboxOpen, setLightboxOpen] = useState<string>();
   const lightboxItems = useMemo(
     () =>
       clips.reduce<Record<string, ReactNode>>(
         (acc, item) => ({
           ...acc,
-          [item.id]: <YouTubeEmbed videoId={item.id} caption={item.caption} />,
+          [item.id]: vertical ? (
+            // Same embed, switched to a 9:16 player sized by the viewport height
+            <div className="h-full [&_iframe]:aspect-9/16 [&>div>div]:aspect-9/16">
+              <YouTubeEmbed videoId={item.id} caption={item.caption} />
+            </div>
+          ) : (
+            <YouTubeEmbed videoId={item.id} caption={item.caption} />
+          ),
         }),
         {},
       ),
-    [clips],
+    [clips, vertical],
   );
 
   const liveButton = !retired && (
@@ -382,7 +392,14 @@ const MockupHighlights = ({
             {ambassador.name}&apos;s Highlights
           </Heading>
 
-          <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          <ul
+            className={classes(
+              "grid gap-6",
+              vertical
+                ? "grid-cols-2 gap-x-4 md:grid-cols-3 md:gap-x-6 xl:grid-cols-4"
+                : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4",
+            )}
+          >
             {clips.map((item, idx) => (
               <li key={item.id}>
                 <button
@@ -395,7 +412,12 @@ const MockupHighlights = ({
                       videoId={item.id}
                       alt=""
                       icon={false}
-                      className="aspect-video h-auto w-full rounded-xl object-cover shadow-none group-hover/trigger:scale-100 group-hover/trigger:shadow-none"
+                      // Shorts thumbnails are 16:9 with the vertical frame centred;
+                      // a centred cover crop to 9:16 removes the side bars
+                      className={classes(
+                        "h-auto w-full rounded-xl object-cover object-center shadow-none group-hover/trigger:scale-100 group-hover/trigger:shadow-none",
+                        vertical ? "aspect-9/16" : "aspect-video",
+                      )}
                     />
                     <span
                       aria-hidden="true"
@@ -405,7 +427,14 @@ const MockupHighlights = ({
                     </span>
                   </span>
                   <span className="flex flex-col gap-1">
-                    <span className="text-lg font-bold text-balance group-hover:underline">
+                    <span
+                      className={classes(
+                        "font-bold text-balance group-hover:underline",
+                        vertical
+                          ? "line-clamp-2 text-base md:text-lg"
+                          : "text-lg",
+                      )}
+                    >
                       <span className="sr-only">Play video: </span>
                       {item.caption}
                     </span>
