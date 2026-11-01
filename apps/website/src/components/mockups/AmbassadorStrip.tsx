@@ -29,7 +29,11 @@ type AmbassadorStripProps = {
   className?: string;
 };
 
-// Compact row of ambassador photos and names, used for the enclosure section
+// Image hover from the /ambassadors grid cards: no shadow, also on keyboard focus
+const cardImageHover =
+  "transition group-hover:scale-102 group-hover:brightness-105 group-hover:contrast-115 group-hover:saturate-110 group-focus-visible:scale-102 group-focus-visible:brightness-105 group-focus-visible:contrast-115 group-focus-visible:saturate-110 motion-reduce:transition-none motion-reduce:group-hover:scale-100 motion-reduce:group-focus-visible:scale-100";
+
+// Row of ambassador photo cards, used for the enclosure section
 // on ambassador pages and the featured ambassadors on Animal Quest episodes
 const AmbassadorStrip = ({
   heading,
@@ -57,31 +61,39 @@ const AmbassadorStrip = ({
         )}
       </div>
 
-      <ul className="flex flex-wrap items-center gap-x-8 gap-y-4">
+      {/* Two per row on phones, fixed-width cards in a wrapping row from sm up */}
+      <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:flex sm:flex-wrap sm:gap-x-6">
         {items.map((item) => (
-          <li key={item.key} className="min-w-0">
+          <li key={item.key} className="min-w-0 sm:w-48">
             <Link
               href={item.href}
               custom
-              className="group flex items-center gap-3 rounded-full pr-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700"
+              className="group block rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-alveus-green-700"
             >
-              <Image
-                src={item.image.src}
-                alt=""
-                width={144}
-                className="size-18 shrink-0 rounded-full object-cover"
-                style={{ objectPosition: item.image.position }}
-              />
-              <span className="min-w-0">
-                <span className="block font-serif text-xl font-bold transition-colors group-hover:text-alveus-green-700 motion-reduce:transition-none">
-                  {item.name}
+              {/* Same photo, shape and hover as the /ambassadors grid cards */}
+              <div className="overflow-hidden rounded-xl">
+                <Image
+                  src={item.image.src}
+                  alt=""
+                  width={400}
+                  className={classes(
+                    "aspect-4/3 h-auto w-full object-cover",
+                    cardImageHover,
+                  )}
+                  style={{ objectPosition: item.image.position }}
+                />
+              </div>
+              <Heading
+                level={3}
+                className="mt-2 mb-0 text-2xl wrap-break-word transition-colors group-hover:text-alveus-green-700 group-focus-visible:text-alveus-green-700 motion-reduce:transition-none"
+              >
+                {item.name}
+              </Heading>
+              {item.caption && (
+                <span className="block text-sm font-bold text-alveus-green-700 uppercase">
+                  {item.caption}
                 </span>
-                {item.caption && (
-                  <span className="block text-sm font-bold text-alveus-green-700 uppercase">
-                    {item.caption}
-                  </span>
-                )}
-              </span>
+              )}
             </Link>
           </li>
         ))}
