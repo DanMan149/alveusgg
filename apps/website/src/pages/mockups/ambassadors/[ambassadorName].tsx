@@ -352,7 +352,7 @@ const MockupHighlights = ({
       className="inline-flex items-center gap-3 text-left"
     >
       <IconTwitch aria-hidden="true" className="shrink-0" />
-      <span>Watch {ambassador.name} live on stream right now</span>
+      <span>Watch {ambassador.name} live here</span>
       <span className="sr-only"> (opens in a new tab)</span>
     </Button>
   );
