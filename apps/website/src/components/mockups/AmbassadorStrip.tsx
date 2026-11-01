@@ -27,6 +27,8 @@ type AmbassadorStripProps = {
   // Secondary action, shown as a link on the heading row
   action?: { label: string; href: string };
   className?: string;
+  // Shown below the list, inside the same section
+  children?: ReactNode;
 };
 
 // Image hover from the /ambassadors grid cards: no shadow, also on keyboard focus
@@ -41,6 +43,7 @@ const AmbassadorStrip = ({
   items,
   action,
   className,
+  children,
 }: AmbassadorStripProps) => {
   if (!items.length) return null;
 
@@ -98,6 +101,13 @@ const AmbassadorStrip = ({
           </li>
         ))}
       </ul>
+
+      {/* Optional follow-on content in the same section, e.g. prev/next */}
+      {children && (
+        <div className="mt-10 border-t border-alveus-green-200 pt-8">
+          {children}
+        </div>
+      )}
     </Section>
   );
 };

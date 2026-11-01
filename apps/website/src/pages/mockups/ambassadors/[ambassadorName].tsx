@@ -532,8 +532,15 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
         ? "playlist"
         : "strip",
   );
-  const showPrevNext =
-    !ambassador.retired && !previewState.startsWith("retired");
+  // Green Button variant, as on the site's other tan sections
+  const prevNext = !ambassador.retired &&
+    !previewState.startsWith("retired") && (
+      <PrevNextNav
+        label="Ambassadors"
+        previous={prevNextItem(prev)}
+        next={prevNextItem(next)}
+      />
+    );
 
   /* Photo carousel and lightbox, as on the live page */
   const [carouselLightboxOpen, setCarouselLightboxOpen] = useState<string>();
@@ -808,29 +815,22 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
         onStateChange={setPreviewState}
       />
 
-      {/* Compact row, hidden when the ambassador lives alone */}
-      <AmbassadorStrip
-        heading={<>Meet others in the {enclosure.name}</>}
-        headingId="enclosure"
-        items={others.map(([key]) => stripItem(key))}
-        action={{
-          label: "View all ambassadors by enclosure",
-          href: "/ambassadors#enclosures",
-        }}
-        className="bg-alveus-green-100"
-      />
-
-      {/* Last section: alternates with the light enclosure strip, or with the
-          dark highlights when the ambassador lives alone */}
-      {showPrevNext && (
-        <Section dark={others.length > 0} className="py-8">
-          <PrevNextNav
-            label="Ambassadors"
-            previous={prevNextItem(prev)}
-            next={prevNextItem(next)}
-            dark={others.length > 0}
-          />
-        </Section>
+      {/* Last tan section before the green footer: the enclosure strip with
+          prev/next below it, or prev/next alone when the ambassador lives alone */}
+      {others.length > 0 ? (
+        <AmbassadorStrip
+          heading={<>Meet others in the {enclosure.name}</>}
+          headingId="enclosure"
+          items={others.map(([key]) => stripItem(key))}
+          action={{
+            label: "View all ambassadors by enclosure",
+            href: "/ambassadors#enclosures",
+          }}
+        >
+          {prevNext}
+        </AmbassadorStrip>
+      ) : (
+        prevNext && <Section className="py-8">{prevNext}</Section>
       )}
     </>
   );
