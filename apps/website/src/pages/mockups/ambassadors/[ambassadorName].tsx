@@ -8,16 +8,13 @@ import ambassadors, {
   type AmbassadorKey,
   isAmbassadorKey,
 } from "@alveusgg/data/build/ambassadors/core";
-import { isActiveAmbassadorKey } from "@alveusgg/data/build/ambassadors/filters";
 import {
   getAmbassadorImages,
   getAmbassadorMerchImage,
 } from "@alveusgg/data/build/ambassadors/images";
 import { getAmbassadorSounds } from "@alveusgg/data/build/ambassadors/sounds";
 import { getSpecies } from "@alveusgg/data/build/ambassadors/species";
-import animalQuestEpisodes, {
-  getAmbassadorEpisodes,
-} from "@alveusgg/data/build/animal-quest";
+import { getAmbassadorEpisodes } from "@alveusgg/data/build/animal-quest";
 import enclosures from "@alveusgg/data/build/enclosures";
 import { getIUCNStatus } from "@alveusgg/data/build/iucn";
 
@@ -85,35 +82,12 @@ const prevNextItem = ([key, other]: (typeof activeAmbassadors)[number]) => {
   };
 };
 
-const stripItem = (
-  key: AmbassadorKey,
-  caption?: string,
-): AmbassadorStripItem => ({
+const stripItem = (key: AmbassadorKey): AmbassadorStripItem => ({
   key,
   name: ambassadors[key].name,
   href: mockupHref(key),
   image: getAmbassadorImages(key)[0],
-  caption,
 });
-
-// Mockup-only: an Animal Quest episode to preview the shared strip with,
-// preferring one this ambassador is in, else the first with several ambassadors
-const sampleEpisodeFor = (key: AmbassadorKey) => {
-  const withActive = animalQuestEpisodes.map((episode) => ({
-    episode,
-    featured: episode.ambassadors.featured.filter(isActiveAmbassadorKey),
-    related: episode.ambassadors.related.filter(isActiveAmbassadorKey),
-  }));
-  const count = (e: (typeof withActive)[number]) =>
-    e.featured.length + e.related.length;
-  return (
-    withActive.find(
-      (e) =>
-        count(e) > 1 &&
-        [...e.featured, ...e.related].some((other) => other === key),
-    ) ?? withActive.find((e) => count(e) > 2)
-  );
-};
 
 const stringifyLifespan = (value: number | { min: number; max: number }) =>
   typeof value === "number" ? `${value}` : `${value.min}-${value.max}`;
@@ -561,11 +535,6 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
   const showPrevNext =
     !ambassador.retired && !previewState.startsWith("retired");
 
-  const sampleEpisode = useMemo(
-    () => sampleEpisodeFor(ambassadorKey),
-    [ambassadorKey],
-  );
-
   /* Photo carousel and lightbox, as on the live page */
   const [carouselLightboxOpen, setCarouselLightboxOpen] = useState<string>();
   const carouselLightboxItems = useMemo(
@@ -862,31 +831,6 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
             dark={others.length > 0}
           />
         </Section>
-      )}
-
-      {/* Mockup only: the same strip as an Animal Quest episode would use it */}
-      {sampleEpisode && (
-        <>
-          <MockupNotice>
-            Preview only, not part of this page: the same ambassador strip as
-            the featured ambassadors section on the Animal Quest episode{" "}
-            <em>{sampleEpisode.episode.edition}</em>.
-          </MockupNotice>
-          <AmbassadorStrip
-            heading="Featured ambassadors"
-            headingId="animal-quest-preview"
-            items={[
-              ...sampleEpisode.featured.map((key) =>
-                stripItem(key, "Featured"),
-              ),
-              ...sampleEpisode.related.map((key) => stripItem(key, "Related")),
-            ]}
-            action={{
-              label: "View all ambassadors",
-              href: "/mockups/ambassadors",
-            }}
-          />
-        </>
       )}
     </>
   );
