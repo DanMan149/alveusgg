@@ -8,13 +8,16 @@ import ambassadors, {
   type AmbassadorKey,
   isAmbassadorKey,
 } from "@alveusgg/data/build/ambassadors/core";
+import { isActiveAmbassadorKey } from "@alveusgg/data/build/ambassadors/filters";
 import {
   getAmbassadorImages,
   getAmbassadorMerchImage,
 } from "@alveusgg/data/build/ambassadors/images";
 import { getAmbassadorSounds } from "@alveusgg/data/build/ambassadors/sounds";
 import { getSpecies } from "@alveusgg/data/build/ambassadors/species";
-import { getAmbassadorEpisodes } from "@alveusgg/data/build/animal-quest";
+import animalQuestEpisodes, {
+  getAmbassadorEpisodes,
+} from "@alveusgg/data/build/animal-quest";
 import enclosures from "@alveusgg/data/build/enclosures";
 import { getIUCNStatus } from "@alveusgg/data/build/iucn";
 
@@ -34,6 +37,9 @@ import Meta from "@/components/content/Meta";
 import PartialDateDiff from "@/components/content/PartialDateDiff";
 import Section from "@/components/content/Section";
 import { YouTubeEmbed, YouTubePreview } from "@/components/content/YouTube";
+import AmbassadorStrip, {
+  type AmbassadorStripItem,
+} from "@/components/mockups/AmbassadorStrip";
 import MockupNotice from "@/components/mockups/MockupNotice";
 import PrevNextNav from "@/components/mockups/PrevNextNav";
 import { underlineTabClassName } from "@/components/mockups/ViewTabs";
@@ -72,11 +78,41 @@ const prevNextItem = ([key, other]: (typeof activeAmbassadors)[number]) => {
         src={thumb.src}
         alt=""
         width={96}
-        className="size-10 shrink-0 rounded-lg object-cover"
+        className="size-10 shrink-0 rounded-full object-cover"
         style={{ objectPosition: thumb.position }}
       />
     ),
   };
+};
+
+const stripItem = (
+  key: AmbassadorKey,
+  caption?: string,
+): AmbassadorStripItem => ({
+  key,
+  name: ambassadors[key].name,
+  href: mockupHref(key),
+  image: getAmbassadorImages(key)[0],
+  caption,
+});
+
+// Mockup-only: an Animal Quest episode to preview the shared strip with,
+// preferring one this ambassador is in, else the first with several ambassadors
+const sampleEpisodeFor = (key: AmbassadorKey) => {
+  const withActive = animalQuestEpisodes.map((episode) => ({
+    episode,
+    featured: episode.ambassadors.featured.filter(isActiveAmbassadorKey),
+    related: episode.ambassadors.related.filter(isActiveAmbassadorKey),
+  }));
+  const count = (e: (typeof withActive)[number]) =>
+    e.featured.length + e.related.length;
+  return (
+    withActive.find(
+      (e) =>
+        count(e) > 1 &&
+        [...e.featured, ...e.related].some((other) => other === key),
+    ) ?? withActive.find((e) => count(e) > 2)
+  );
 };
 
 const stringifyLifespan = (value: number | { min: number; max: number }) =>
@@ -239,6 +275,9 @@ const previewStates = {
 } as const;
 type PreviewState = keyof typeof previewStates;
 
+const isSharedPlaylist = (key: AmbassadorKey) =>
+  sharedPlaylists.some((keys) => keys.includes(key));
+
 const listFormat = new Intl.ListFormat("en", {
   style: "long",
   type: "conjunction",
@@ -253,10 +292,14 @@ const MockupHighlights = ({
   ambassadorKey,
   ambassador,
   enclosureMates,
+  state,
+  onStateChange,
 }: {
   ambassadorKey: AmbassadorKey;
   ambassador: Ambassador;
   enclosureMates: AmbassadorKey[];
+  state: PreviewState;
+  onStateChange: (state: PreviewState) => void;
 }) => {
   // Real shared playlist if there is one, otherwise an enclosure mate as an example
   const group = useMemo(
@@ -267,7 +310,6 @@ const MockupHighlights = ({
       ],
     [ambassadorKey, enclosureMates],
   );
-  const isShared = sharedPlaylists.some((keys) => keys.includes(ambassadorKey));
 
   // Sample clips: own curated clips first, then the group's, then everyone else's
   const sampleClips = useMemo(
@@ -280,10 +322,6 @@ const MockupHighlights = ({
         ),
       ]),
     [ambassador.clips, group],
-  );
-
-  const [state, setState] = useState<PreviewState>(
-    isShared ? "shared" : ambassador.clips.length ? "playlist" : "strip",
   );
 
   const retired = state.startsWith("retired");
@@ -362,7 +400,7 @@ const MockupHighlights = ({
               key={key}
               type="button"
               aria-pressed={state === key}
-              onClick={() => setState(key)}
+              onClick={() => onStateChange(key)}
               className={underlineTabClassName(state === key)}
             >
               {previewStates[key]}
@@ -512,6 +550,22 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
       key !== ambassadorKey && other.enclosure === ambassador.enclosure,
   );
 
+  // Highlights preview state, also used to hide prev/next in the retired states
+  const [previewState, setPreviewState] = useState<PreviewState>(
+    isSharedPlaylist(ambassadorKey)
+      ? "shared"
+      : ambassador.clips.length
+        ? "playlist"
+        : "strip",
+  );
+  const showPrevNext =
+    !ambassador.retired && !previewState.startsWith("retired");
+
+  const sampleEpisode = useMemo(
+    () => sampleEpisodeFor(ambassadorKey),
+    [ambassadorKey],
+  );
+
   /* Photo carousel and lightbox, as on the live page */
   const [carouselLightboxOpen, setCarouselLightboxOpen] = useState<string>();
   const carouselLightboxItems = useMemo(
@@ -617,13 +671,6 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
           <div className="basis-full lg:basis-1/2" />
 
           <div className="flex basis-full flex-col py-4 lg:max-w-1/2 lg:basis-1/2 lg:px-8 lg:pt-8">
-            <PrevNextNav
-              label="Ambassadors"
-              previous={prevNextItem(prev)}
-              next={prevNextItem(next)}
-              className="mb-4"
-            />
-
             <Heading className="text-5xl">{ambassador.name}</Heading>
             {!!ambassador.alternate.length && (
               <p className="-mt-1 mb-2 text-lg text-alveus-green-700 italic">
@@ -788,45 +835,58 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
         ambassadorKey={ambassadorKey}
         ambassador={ambassador}
         enclosureMates={others.map(([key]) => key)}
+        state={previewState}
+        onStateChange={setPreviewState}
       />
 
       {/* Compact row, hidden when the ambassador lives alone */}
-      {others.length > 0 && (
-        <Section className="bg-alveus-green-100 py-8">
-          <Heading level={2} className="mt-0 mb-4 text-2xl">
-            Meet others in the {enclosure.name}
-          </Heading>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
-            <ul className="flex flex-wrap items-center gap-x-5 gap-y-3">
-              {others.map(([key, other]) => {
-                const image = getAmbassadorImages(key)[0];
-                return (
-                  <li key={key}>
-                    <Link
-                      href={mockupHref(key)}
-                      custom
-                      className="group flex items-center gap-2 rounded-full pr-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700"
-                    >
-                      <Image
-                        src={image.src}
-                        alt=""
-                        width={96}
-                        className="size-12 shrink-0 rounded-full object-cover"
-                        style={{ objectPosition: image.position }}
-                      />
-                      <span className="font-serif text-lg font-bold transition-colors group-hover:text-alveus-green-700 motion-reduce:transition-none">
-                        {other.name}
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-            <Button href="/ambassadors#enclosures" className="text-base">
-              View all ambassadors by enclosure
-            </Button>
-          </div>
+      <AmbassadorStrip
+        heading={<>Meet others in the {enclosure.name}</>}
+        headingId="enclosure"
+        items={others.map(([key]) => stripItem(key))}
+        action={{
+          label: "View all ambassadors by enclosure",
+          href: "/ambassadors#enclosures",
+        }}
+        className="bg-alveus-green-100"
+      />
+
+      {/* Last section: alternates with the light enclosure strip, or with the
+          dark highlights when the ambassador lives alone */}
+      {showPrevNext && (
+        <Section dark={others.length > 0} className="py-8">
+          <PrevNextNav
+            label="Ambassadors"
+            previous={prevNextItem(prev)}
+            next={prevNextItem(next)}
+            dark={others.length > 0}
+          />
         </Section>
+      )}
+
+      {/* Mockup only: the same strip as an Animal Quest episode would use it */}
+      {sampleEpisode && (
+        <>
+          <MockupNotice>
+            Preview only, not part of this page: the same ambassador strip as
+            the featured ambassadors section on the Animal Quest episode{" "}
+            <em>{sampleEpisode.episode.edition}</em>.
+          </MockupNotice>
+          <AmbassadorStrip
+            heading="Featured ambassadors"
+            headingId="animal-quest-preview"
+            items={[
+              ...sampleEpisode.featured.map((key) =>
+                stripItem(key, "Featured"),
+              ),
+              ...sampleEpisode.related.map((key) => stripItem(key, "Related")),
+            ]}
+            action={{
+              label: "View all ambassadors",
+              href: "/mockups/ambassadors",
+            }}
+          />
+        </>
       )}
     </>
   );
