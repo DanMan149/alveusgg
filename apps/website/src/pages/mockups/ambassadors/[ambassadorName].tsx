@@ -19,6 +19,7 @@ import enclosures from "@alveusgg/data/build/enclosures";
 import { getIUCNStatus } from "@alveusgg/data/build/iucn";
 
 import { classes } from "@/utils/classes";
+import { formatDateTime } from "@/utils/datetime";
 import { formatPartialDateString } from "@/utils/datetime-partial";
 import { convertToSlug } from "@/utils/slugs";
 import { camelToKebab, kebabToCamel } from "@/utils/string-case";
@@ -234,18 +235,17 @@ const sharedPlaylists: AmbassadorKey[][] = [
 const playlistHref = "https://www.youtube.com/@AlveusClips/playlists";
 const twitchHref = "https://www.twitch.tv/alveussanctuary";
 
-// Clearly fake view counts, highest first (playlists will be sorted by views)
-const sampleViews = ["45,678", "34,567", "23,456", "12,345"];
+// Clearly fake publish dates for the sample clips: January 1, February 2, ...
+const sampleDate = (idx: number) => new Date(Date.UTC(2025, idx, idx + 1));
 
 const previewStates = {
   playlist: "Playlist",
   shared: "Shared playlist",
   fewer: "Fewer than 4 clips",
   curated: "Curated clips, no playlist",
-  strip: "No clips (thin strip)",
+  none: "No clips (section hidden)",
   retiredPlaylist: "Retired with playlist",
   retiredCurated: "Retired, curated clips",
-  retiredNone: "Retired, no clips (shows nothing)",
 } as const;
 type PreviewState = keyof typeof previewStates;
 
@@ -300,7 +300,7 @@ const MockupHighlights = ({
 
   const retired = state.startsWith("retired");
   const tier =
-    state === "strip" || state === "retiredNone"
+    state === "none"
       ? "none"
       : state === "curated" || state === "retiredCurated"
         ? "curated"
@@ -383,18 +383,8 @@ const MockupHighlights = ({
         </div>
       </div>
 
-      {tier === "none" ? (
-        // Thin strip with only the live button (nothing at all when retired)
-        liveButton && (
-          <Section
-            dark
-            className="bg-alveus-green-800 py-4"
-            containerClassName="flex justify-center"
-          >
-            {liveButton}
-          </Section>
-        )
-      ) : (
+      {/* No clips: no Highlights section at all */}
+      {tier !== "none" && (
         <Section dark className="bg-alveus-green-800">
           <Heading
             level={2}
@@ -450,12 +440,12 @@ const MockupHighlights = ({
                       <span className="sr-only">Play video: </span>
                       {item.caption}
                     </span>
-                    {tier === "playlist" && (
-                      <span className="text-sm text-alveus-green-200">
-                        <span className="sr-only">, </span>
-                        {sampleViews[idx]} views
-                      </span>
-                    )}
+                    <span className="text-sm text-alveus-green-200">
+                      <span className="sr-only">, </span>
+                      <time dateTime={sampleDate(idx).toISOString()}>
+                        {formatDateTime(sampleDate(idx), { style: "long" })}
+                      </time>
+                    </span>
                   </span>
                 </button>
               </li>
@@ -530,8 +520,9 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
       ? "shared"
       : ambassador.clips.length
         ? "playlist"
-        : "strip",
+        : "none",
   );
+  const noHighlights = previewState === "none";
   // Green Button variant, as on the site's other tan sections
   const prevNext = !ambassador.retired &&
     !previewState.startsWith("retired") && (
@@ -623,7 +614,7 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
       <MockupNotice>
         All details come from the ambassador data, except Highlights, which use
         sample data: this ambassador&apos;s curated clips (topped up with other
-        ambassadors&apos; clips where needed), made-up view counts and a
+        ambassadors&apos; clips where needed), made-up publish dates and a
         placeholder playlist link.
       </MockupNotice>
 
@@ -815,8 +806,10 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
         onStateChange={setPreviewState}
       />
 
-      {/* Last tan section before the green footer: the enclosure strip with
-          prev/next below it, or prev/next alone when the ambassador lives alone */}
+      {/* Last section before the green footer: the enclosure strip with
+          prev/next below it, or prev/next alone when the ambassador lives alone.
+          Tan after the dark highlights, light green (as in the PRs) when there
+          are no highlights and it follows the tan main section */}
       {others.length > 0 ? (
         <AmbassadorStrip
           heading={<>Meet others in the {enclosure.name}</>}
@@ -826,11 +819,18 @@ const AmbassadorMockup = ({ ambassadorKey }: Props) => {
             label: "View all ambassadors by enclosure",
             href: "/ambassadors#enclosures",
           }}
+          className={noHighlights ? "bg-alveus-green-100" : undefined}
         >
           {prevNext}
         </AmbassadorStrip>
       ) : (
-        prevNext && <Section className="py-8">{prevNext}</Section>
+        prevNext && (
+          <Section
+            className={classes("py-8", noHighlights && "bg-alveus-green-100")}
+          >
+            {prevNext}
+          </Section>
+        )
       )}
     </>
   );
