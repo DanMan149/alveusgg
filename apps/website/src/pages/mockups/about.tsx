@@ -234,11 +234,14 @@ const HistoryCard = ({
   );
 };
 
+const latestYear = historyYears.at(-1);
+
 const HistoryView = () => {
-  // 2020 and 2021 are open, the rest start collapsed
+  // 2020, 2021 and the latest year are open, the rest start collapsed
   const [open, setOpen] = useState<Record<string, boolean>>({
     "2020": true,
     "2021": true,
+    ...(latestYear && { [latestYear]: true }),
   });
   const [visible, setVisible] = useState<Record<Category, boolean>>({
     build: true,
@@ -444,6 +447,44 @@ const teamImageClasses =
 
 const bioButtonId = (key: string) => `${key}-bio-button`;
 
+// Pronouns aren't in the team data yet, so they're listed here by first name,
+// which is also each person's key in the team data (e.g. "Space" is space)
+const pronounsByFirstName: Record<string, string> = {
+  Maya: "she/her",
+  Connor: "he/him",
+  Kayla: "she/her",
+  Lindsay: "she/her",
+  Sruti: "she/her",
+  Amanda: "she/her",
+  Miranda: "she/her",
+  Linden: "she/her",
+  Lukas: "he/him",
+  Rocky: "he/him",
+  Chris: "he/him",
+  Space: "he/him",
+  Chandler: "he/him",
+  Jacob: "he/him",
+};
+
+const pronounsFor = (key: string) =>
+  Object.entries(pronounsByFirstName).find(
+    ([firstName]) => firstName.toLowerCase() === key,
+  )?.[1];
+
+// Smaller and in the bio text color, after the name
+const Pronouns = ({ personKey }: { personKey: string }) => {
+  const pronouns = pronounsFor(personKey);
+  if (!pronouns) return null;
+  return (
+    <>
+      {" "}
+      <span className="font-sans text-lg font-normal whitespace-nowrap text-gray-500">
+        ({pronouns})
+      </span>
+    </>
+  );
+};
+
 // Photo with the hover swap, copied from components/content/People.tsx;
 // group-focus-within adds the swap for keyboard focus on the bio button
 const TeamPhoto = ({
@@ -513,33 +554,35 @@ const TeamCard = ({
   onOpen: () => void;
 }) => (
   <li id={id} className="group flex scroll-mt-4 flex-col" tabIndex={-1}>
-    <div className="mx-auto w-full max-w-xs">
+    {/* Photo and text share one column, so the text starts at the photo's left edge */}
+    <div className="mx-auto flex w-full max-w-xs grow flex-col">
       <TeamPhoto person={person} />
-    </div>
 
-    <div className="flex grow flex-col pt-4">
-      <Heading level={3} className="my-0 text-3xl">
-        {person.name}
-      </Heading>
-      <Heading level={4} className="my-1 text-xl">
-        {person.title}
-      </Heading>
-      <DepartmentLabel person={person} />
+      <div className="flex grow flex-col pt-4">
+        <Heading level={3} className="my-0 text-3xl">
+          {person.name}
+          <Pronouns personKey={id} />
+        </Heading>
+        <Heading level={4} className="my-1 text-xl">
+          {person.title}
+        </Heading>
+        <DepartmentLabel person={person} />
 
-      <p className="mt-3 line-clamp-3 text-gray-500">
-        {descriptionText(person.description)}
-      </p>
+        <p className="mt-3 line-clamp-3 text-gray-500">
+          {descriptionText(person.description)}
+        </p>
 
-      <button
-        type="button"
-        id={bioButtonId(id)}
-        aria-haspopup="dialog"
-        onClick={onOpen}
-        className="mt-auto inline-flex items-center gap-1 self-start pt-3 text-red-600 underline transition-colors hover:text-blue-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700"
-      >
-        Read full bio<span className="sr-only"> of {person.name}</span>
-        <IconArrowRight className="size-4" />
-      </button>
+        <button
+          type="button"
+          id={bioButtonId(id)}
+          aria-haspopup="dialog"
+          onClick={onOpen}
+          className="mt-auto inline-flex items-center gap-1 self-start pt-3 text-red-600 underline transition-colors hover:text-blue-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700"
+        >
+          Read full bio<span className="sr-only"> of {person.name}</span>
+          <IconArrowRight className="size-4" />
+        </button>
+      </div>
     </div>
   </li>
 );
@@ -582,6 +625,7 @@ const BioDialog = ({
                       className="font-serif text-3xl font-bold md:text-4xl"
                     >
                       {person.name}
+                      {openKey && <Pronouns personKey={openKey} />}
                     </DialogTitle>
                     <Heading level={4} className="my-1 text-xl">
                       {person.title}
@@ -730,7 +774,8 @@ const AboutMockupPage: NextPage = () => {
       <div className="-mt-40 hidden h-40 bg-alveus-green-900 lg:block" />
 
       <MockupNotice>
-        Text comes from the live about and team pages.
+        Text comes from the live about and team pages. Pronouns are not in the
+        team data yet, they would come from a field in the data repo.
       </MockupNotice>
 
       <ViewTabs
