@@ -37,6 +37,7 @@ import IconBolt from "@/icons/IconBolt";
 import IconBox from "@/icons/IconBox";
 import IconChevronDown from "@/icons/IconChevronDown";
 import IconDollar from "@/icons/IconDollar";
+import IconTwitch from "@/icons/IconTwitch";
 import IconUserGroup from "@/icons/IconUserGroup";
 import IconX from "@/icons/IconX";
 
@@ -471,6 +472,32 @@ const pronounsFor = (key: string) =>
     ([firstName]) => firstName.toLowerCase() === key,
   )?.[1];
 
+// Twitch channels aren't in the team data yet, so this is only a demo for
+// Connor; the row below the bio is only shown for people listed here
+const twitchByKey: Record<string, { lead: string; channel: string }> = {
+  connor: { lead: "He also streams over at", channel: "theconnorobrien" },
+};
+
+const TwitchRow = ({ personKey }: { personKey: string }) => {
+  const twitch = twitchByKey[personKey];
+  if (!twitch) return null;
+  return (
+    <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2">
+      <p className="text-gray-500">{twitch.lead}</p>
+      <Button
+        href={`https://www.twitch.tv/${twitch.channel}`}
+        external
+        filled
+        aria-label={`${twitch.channel} on Twitch, opens in a new tab`}
+        className="inline-flex items-center gap-2 px-4 py-1.5 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700"
+      >
+        <IconTwitch size={18} aria-hidden="true" />
+        {twitch.channel}
+      </Button>
+    </div>
+  );
+};
+
 // Smaller and in the bio text color, after the name
 const Pronouns = ({ personKey }: { personKey: string }) => {
   const pronouns = pronounsFor(personKey);
@@ -637,6 +664,8 @@ const BioDialog = ({
                 <div className="mt-6 flex flex-col gap-4 text-gray-500">
                   {person.description}
                 </div>
+
+                {openKey && <TwitchRow personKey={openKey} />}
               </Box>
             )}
           </DialogPanel>
@@ -775,7 +804,9 @@ const AboutMockupPage: NextPage = () => {
 
       <MockupNotice>
         Text comes from the live about and team pages. Pronouns are not in the
-        team data yet, they would come from a field in the data repo.
+        team data yet, they would come from a field in the data repo. Twitch
+        channels are not in the team data yet either, so the Twitch link in the
+        full bio is only shown for Connor as a demo.
       </MockupNotice>
 
       <ViewTabs
