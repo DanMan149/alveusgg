@@ -2,6 +2,7 @@ import { type NextPage } from "next";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import {
+  type ComponentType,
   Fragment,
   type ReactNode,
   useCallback,
@@ -19,6 +20,7 @@ import { formatDateTime } from "@/utils/datetime";
 import { useCopyToClipboard } from "@/hooks/clipboard";
 
 import Box from "@/components/content/Box";
+import Button from "@/components/content/Button";
 import Heading from "@/components/content/Heading";
 import InPageNav from "@/components/content/InPageNav";
 import Lightbox from "@/components/content/Lightbox";
@@ -29,11 +31,17 @@ import { YouTubeEmbed, YouTubePreview } from "@/components/content/YouTube";
 import MockupNotice from "@/components/mockups/MockupNotice";
 import ViewTabs from "@/components/mockups/ViewTabs";
 
+import { type IconProps } from "@/icons/BaseIcon";
 import IconArrowRight from "@/icons/IconArrowRight";
 import IconClipboard from "@/icons/IconClipboard";
+import IconDollar from "@/icons/IconDollar";
+import IconEnvelope from "@/icons/IconEnvelope";
 import IconExternal from "@/icons/IconExternal";
+import IconGlobe from "@/icons/IconGlobe";
 import IconInformationCircle from "@/icons/IconInformationCircle";
 import IconSearch from "@/icons/IconSearch";
+import IconShoppingCart from "@/icons/IconShoppingCart";
+import IconUserGroup from "@/icons/IconUserGroup";
 import IconX from "@/icons/IconX";
 
 import leafLeftImage3 from "@/assets/floral/leaf-left-3.png";
@@ -392,22 +400,19 @@ const CollaborationsView = () => {
 
 type ContactLink = { text: string; href: string; external?: boolean };
 
-// One labelled piece of a card: a line of live text, then an email,
-// a single link, or a row of link buttons
+// One labelled piece of a card: a line of live text, then an email or a link
 type ContactPart = {
   text: string;
   email?: string;
   link?: ContactLink;
-  buttons?: ContactLink[];
 };
 
 type ContactCategory = {
   key: string;
   name: string;
+  icon: ComponentType<IconProps>;
   // Text and links copied from the live contact page
   parts: ContactPart[];
-  // Show the text small, as the live page does for the GitHub/security note
-  small?: boolean;
   // Buttons pinned to the bottom of the card
   buttons?: ContactLink[];
 };
@@ -416,6 +421,7 @@ const categories: ContactCategory[] = [
   {
     key: "donors",
     name: "Donors",
+    icon: IconDollar,
     parts: [
       { text: "For donor inquiries:", email: "contact@alveussanctuary.org" },
     ],
@@ -427,11 +433,13 @@ const categories: ContactCategory[] = [
   {
     key: "business",
     name: "Business",
+    icon: IconGlobe,
     parts: [{ text: "For business inquiries:", email: "alveus@loaded.gg" }],
   },
   {
     key: "merch",
     name: "Merch",
+    icon: IconShoppingCart,
     parts: [
       {
         text: "For merch inquiries:",
@@ -454,6 +462,7 @@ const categories: ContactCategory[] = [
   {
     key: "grants",
     name: "Grants",
+    icon: IconEnvelope,
     parts: [
       {
         text: "For foundation & corporate grants:",
@@ -465,6 +474,7 @@ const categories: ContactCategory[] = [
   {
     key: "collaboration",
     name: "Collaboration",
+    icon: IconUserGroup,
     parts: [
       {
         text: "To connect with Maya regarding collaboration or to offer support for Alveus Sanctuary:",
@@ -472,41 +482,20 @@ const categories: ContactCategory[] = [
       },
     ],
   },
-  {
-    key: "security",
-    name: "Security and tech",
-    small: true,
-    parts: [
-      {
-        text: "For issues with the website or Twitch extension, please open an issue on GitHub:",
-        buttons: [
-          {
-            text: "Website",
-            href: "https://github.com/alveusgg/alveusgg/issues/new/choose",
-            external: true,
-          },
-          {
-            text: "Twitch Extension",
-            href: "https://github.com/alveusgg/extension/issues/new/choose",
-            external: true,
-          },
-        ],
-      },
-      {
-        text: "If you discover a security vulnerability within the website, or any of our other open-source projects, please email us:",
-        email: "opensource@alveussanctuary.org",
-      },
-    ],
-  },
 ];
 
-// Light fill, dark text (the style the old Send email button had)
-const contactButtonClasses =
-  "inline-flex items-center gap-2 rounded-lg bg-alveus-tan px-3 py-1.5 text-alveus-green-900 transition-colors hover:bg-alveus-tan-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-tan motion-reduce:transition-none";
+// Six columns on desktop: three cards on top, two wider ones below, so both
+// rows are full. Two per row on tablet, with the last card full width
+const cardSpans = [
+  "lg:col-span-2",
+  "lg:col-span-2",
+  "lg:col-span-2",
+  "lg:col-span-3",
+  "md:col-span-2 lg:col-span-3",
+];
 
-// Tan text on the green card, underlined so it reads as a link
-const contactLinkClasses =
-  "font-serif text-base font-bold text-alveus-tan underline decoration-alveus-tan/60 underline-offset-2 transition-colors wrap-anywhere hover:decoration-alveus-tan focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-tan motion-reduce:transition-none sm:text-lg";
+// The site's Link style, a little larger and bold so addresses stand out
+const contactLinkClasses = "font-semibold wrap-anywhere sm:text-lg";
 
 // Let long addresses wrap at "@", "." and "/" rather than mid-word
 const withBreaks = (text: string) =>
@@ -526,7 +515,6 @@ const EmailRow = ({ email }: { email: string }) => {
     <div className="flex items-center gap-1">
       <Link
         href={`mailto:${email}`}
-        custom
         className={classes(contactLinkClasses, "min-w-0")}
       >
         {withBreaks(email)}
@@ -536,7 +524,7 @@ const EmailRow = ({ email }: { email: string }) => {
           type="button"
           onClick={() => copy(email)}
           aria-label="Copy email address"
-          className="rounded-lg p-2 transition-colors hover:bg-alveus-tan hover:text-alveus-green-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-tan motion-reduce:transition-none"
+          className="rounded-lg p-2 text-alveus-green transition-colors hover:bg-alveus-green hover:text-alveus-tan focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700 motion-reduce:transition-none"
         >
           <IconClipboard className="size-5" />
         </button>
@@ -544,7 +532,7 @@ const EmailRow = ({ email }: { email: string }) => {
         <span
           aria-hidden="true"
           className={classes(
-            "pointer-events-none absolute right-0 bottom-full mb-1 rounded-md bg-alveus-tan px-2 py-0.5 text-sm whitespace-nowrap text-alveus-green-900 transition-opacity motion-reduce:transition-none",
+            "pointer-events-none absolute right-0 bottom-full mb-1 rounded-md bg-alveus-green px-2 py-0.5 text-sm whitespace-nowrap text-alveus-tan transition-opacity motion-reduce:transition-none",
             message ? "opacity-100" : "opacity-0",
           )}
         >
@@ -569,18 +557,18 @@ const ContactButtons = ({
     <ul className={classes("flex flex-wrap gap-2", className)}>
       {links.map((link) => (
         <li key={link.href}>
-          <Link
+          {/* The site's green Button, sized down to sit inside a card */}
+          <Button
             href={link.href}
             external={link.external}
-            custom
-            className={contactButtonClasses}
+            className="inline-flex items-center gap-2 px-3 py-1 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700"
           >
             {link.text}
             {link.external && <IconExternal size={14} aria-hidden="true" />}
             {link.external && (
               <span className="sr-only"> (opens in a new tab)</span>
             )}
-          </Link>
+          </Button>
         </li>
       ))}
     </ul>
@@ -598,47 +586,37 @@ const ContactView = () => (
       We are not openly hiring.
     </p>
 
-    {/* Six equal cards: 1, 2 or 3 per row, so no row has an empty slot */}
-    <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {categories.map((category) => (
-        <li key={category.key} id={`contact-${category.key}`}>
-          <Box dark className="flex h-full flex-col gap-4 p-5">
-            <Heading level={2} className="my-0 text-2xl">
-              {category.name}
-            </Heading>
+    {/* Light Box cards on the tan section, with the icon tile and heading row
+        from the How to Help cards. Cards stretch to the tallest in their row */}
+    <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-6">
+      {categories.map((category, idx) => (
+        <li
+          key={category.key}
+          id={`contact-${category.key}`}
+          className={cardSpans[idx]}
+        >
+          <Box className="flex h-full flex-col gap-4 p-5">
+            <div className="flex items-center gap-4">
+              <div className="rounded-xl border-2 border-alveus-green bg-alveus-green p-2 text-alveus-tan">
+                <category.icon size={24} aria-hidden="true" />
+              </div>
+              <Heading level={2} className="my-0">
+                {category.name}
+              </Heading>
+            </div>
 
             {category.parts.map((part) => (
-              <div
-                key={part.text}
-                className={classes(
-                  "flex flex-col gap-1",
-                  category.small && "text-sm",
-                )}
-              >
+              <div key={part.text} className="flex flex-col gap-1">
                 <p>{part.text}</p>
                 {part.email && <EmailRow email={part.email} />}
                 {part.link && (
                   <Link
                     href={part.link.href}
                     external={part.link.external}
-                    custom
                     className={contactLinkClasses}
                   >
                     {withBreaks(part.link.text)}
-                    {part.link.external && (
-                      <>
-                        <IconExternal
-                          size={14}
-                          aria-hidden="true"
-                          className="ml-1 inline-block"
-                        />
-                        <span className="sr-only"> (opens in a new tab)</span>
-                      </>
-                    )}
                   </Link>
-                )}
-                {part.buttons && (
-                  <ContactButtons links={part.buttons} className="mt-1" />
                 )}
               </div>
             ))}
@@ -651,6 +629,36 @@ const ContactView = () => (
         </li>
       ))}
     </ul>
+
+    {/* Website and open-source only, so kept as a small note as on the live
+        page, separate from the general contact cards */}
+    <div className="mt-10 text-center text-sm">
+      <p>
+        For issues with the website or Twitch extension, please open an issue on
+        GitHub:{" "}
+        <Link
+          href="https://github.com/alveusgg/alveusgg/issues/new/choose"
+          external
+        >
+          Website
+        </Link>{" "}
+        or{" "}
+        <Link
+          href="https://github.com/alveusgg/extension/issues/new/choose"
+          external
+        >
+          Twitch Extension
+        </Link>
+      </p>
+
+      <p>
+        If you discover a security vulnerability within the website, or any of
+        our other open-source projects, please email us:{" "}
+        <Link href="mailto:opensource@alveussanctuary.org">
+          opensource@alveussanctuary.org
+        </Link>
+      </p>
+    </div>
   </Section>
 );
 
