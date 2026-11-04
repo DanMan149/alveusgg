@@ -413,6 +413,8 @@ type ContactCategory = {
   icon: ComponentType<IconProps>;
   // Text and links copied from the live contact page
   parts: ContactPart[];
+  // Sub-titled halves shown side by side inside the card
+  sections?: { title: string; link: ContactLink }[];
   // Buttons pinned to the bottom of the card
   buttons?: ContactLink[];
 };
@@ -437,29 +439,6 @@ const categories: ContactCategory[] = [
     parts: [{ text: "For business inquiries:", email: "alveus@loaded.gg" }],
   },
   {
-    key: "merch",
-    name: "Merch",
-    icon: IconShoppingCart,
-    parts: [
-      {
-        text: "For merch inquiries:",
-        link: {
-          text: "shop.alveussanctuary.org/pages/contact",
-          href: "https://shop.alveussanctuary.org/pages/contact",
-          external: true,
-        },
-      },
-      {
-        text: "For plushie inquiries:",
-        link: {
-          text: "youtooz.com/pages/contact-us",
-          href: "https://youtooz.com/pages/contact-us",
-          external: true,
-        },
-      },
-    ],
-  },
-  {
     key: "grants",
     name: "Grants",
     icon: IconEnvelope,
@@ -470,6 +449,32 @@ const categories: ContactCategory[] = [
       },
     ],
     buttons: [{ text: "Funding priorities", href: "/donate/grants" }],
+  },
+  {
+    key: "shop",
+    name: "Shop",
+    icon: IconShoppingCart,
+    parts: [],
+    // Short domains as the text; the bare domains do not redirect to the
+    // contact pages, so the links keep the full URLs
+    sections: [
+      {
+        title: "Apparel",
+        link: {
+          text: "shop.alveussanctuary.org",
+          href: "https://shop.alveussanctuary.org/pages/contact",
+          external: true,
+        },
+      },
+      {
+        title: "Plushies",
+        link: {
+          text: "youtooz.com",
+          href: "https://youtooz.com/pages/contact-us",
+          external: true,
+        },
+      },
+    ],
   },
   {
     key: "collaboration",
@@ -620,6 +625,31 @@ const ContactView = () => (
                 )}
               </div>
             ))}
+
+            {category.sections && (
+              // Equal halves on desktop. On tablet the card is narrow, so the
+              // columns fit their content and the links use the base size to
+              // keep each domain on one line
+              <div className="grid gap-4 md:grid-cols-[auto_auto] md:justify-start lg:grid-cols-2">
+                {category.sections.map((section) => (
+                  <div key={section.title} className="flex flex-col gap-1">
+                    <Heading level={3} className="my-0 text-xl">
+                      {section.title}
+                    </Heading>
+                    <Link
+                      href={section.link.href}
+                      external={section.link.external}
+                      className={classes(
+                        contactLinkClasses,
+                        "md:text-base lg:text-lg",
+                      )}
+                    >
+                      {withBreaks(section.link.text)}
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Buttons sit on the bottom edge so they line up across a row */}
             {category.buttons && (
