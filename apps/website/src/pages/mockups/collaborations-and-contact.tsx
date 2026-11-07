@@ -105,7 +105,9 @@ const CollaborationCard = ({
   // Scroll margin clears the sticky year nav (two rows on phones)
   return (
     <li id={collaboration.slug} className="scroll-mt-36 md:scroll-mt-24">
-      <Box className="flex h-full flex-col p-0">
+      {/* Not clipped, so the preview's hover scale and shadow show in full.
+          The preview keeps its own corners, matched to the card */}
+      <Box className="flex h-full flex-col overflow-visible p-0">
         <Link
           href={`https://www.youtube.com/watch?v=${collaboration.videoId}`}
           external
@@ -119,7 +121,7 @@ const CollaborationCard = ({
           <YouTubePreview
             videoId={collaboration.videoId}
             alt={`Watch the ${collaboration.name} collaboration`}
-            className="aspect-video h-auto w-full object-cover"
+            className="aspect-video h-auto w-full rounded-xl object-cover"
           />
         </Link>
         <div className="flex flex-col gap-1 p-4">
@@ -455,13 +457,12 @@ const categories: ContactCategory[] = [
     name: "Shop",
     icon: IconShoppingCart,
     parts: [],
-    // Short domains as the text; the bare domains do not redirect to the
-    // contact pages, so the links keep the full URLs
+    // Full paths, so it is clear the links go to each store's contact page
     sections: [
       {
         title: "Apparel",
         link: {
-          text: "shop.alveussanctuary.org",
+          text: "shop.alveussanctuary.org/pages/contact",
           href: "https://shop.alveussanctuary.org/pages/contact",
           external: true,
         },
@@ -469,7 +470,7 @@ const categories: ContactCategory[] = [
       {
         title: "Plushies",
         link: {
-          text: "youtooz.com",
+          text: "youtooz.com/pages/contact-us",
           href: "https://youtooz.com/pages/contact-us",
           external: true,
         },
@@ -503,8 +504,8 @@ const cardSpans = [
 const contactLinkClasses = "font-semibold wrap-anywhere sm:text-lg";
 
 // Let long addresses wrap at "@", "." and "/" rather than mid-word
-const withBreaks = (text: string) =>
-  text.split(/(?=[@./])/).map((part, idx) => (
+const withBreaks = (text: string, at = /(?=[@./])/) =>
+  text.split(at).map((part, idx) => (
     <Fragment key={part + idx.toString()}>
       {idx > 0 && <wbr />}
       {part}
@@ -581,15 +582,18 @@ const ContactButtons = ({
 
 const ContactView = () => (
   <Section className="grow">
-    <Heading className="text-5xl">Contact Us</Heading>
+    {/* The note sits on the title row from tablet up, below it on phones */}
+    <div className="mb-6 flex flex-col items-start gap-2 md:flex-row md:items-center md:justify-between">
+      <Heading className="text-5xl">Contact Us</Heading>
 
-    <p
-      role="note"
-      className="mb-6 inline-flex items-center gap-2 rounded-lg border border-alveus-green-300 bg-alveus-green-100 px-4 py-2 text-lg font-semibold"
-    >
-      <IconInformationCircle className="size-5 shrink-0" />
-      We are not openly hiring.
-    </p>
+      <p
+        role="note"
+        className="inline-flex items-center gap-2 rounded-lg border border-alveus-green-300 bg-alveus-green-100 px-4 py-2 text-lg font-semibold"
+      >
+        <IconInformationCircle className="size-5 shrink-0" />
+        We are not openly hiring.
+      </p>
+    </div>
 
     {/* Light Box cards on the tan section, with the icon tile and heading row
         from the How to Help cards. Cards stretch to the tallest in their row */}
@@ -601,13 +605,19 @@ const ContactView = () => (
           className={cardSpans[idx]}
         >
           <Box className="flex h-full flex-col gap-4 p-5">
-            <div className="flex items-center gap-4">
-              <div className="rounded-xl border-2 border-alveus-green bg-alveus-green p-2 text-alveus-tan">
-                <category.icon size={24} aria-hidden="true" />
+            {/* Buttons share the title row, right-aligned. When the row is
+                too narrow they wrap below the title rather than squeeze it */}
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+              <div className="flex shrink-0 items-center gap-4">
+                <div className="rounded-xl border-2 border-alveus-green bg-alveus-green p-2 text-alveus-tan">
+                  <category.icon size={24} aria-hidden="true" />
+                </div>
+                <Heading level={2} className="my-0">
+                  {category.name}
+                </Heading>
               </div>
-              <Heading level={2} className="my-0">
-                {category.name}
-              </Heading>
+
+              {category.buttons && <ContactButtons links={category.buttons} />}
             </div>
 
             {category.parts.map((part) => (
@@ -628,8 +638,8 @@ const ContactView = () => (
 
             {category.sections && (
               // Equal halves on desktop. On tablet the card is narrow, so the
-              // columns fit their content and the links use the base size to
-              // keep each domain on one line
+              // columns fit their content and the links use the base size.
+              // Links only wrap at "/", keeping each domain on one line
               <div className="grid gap-4 md:grid-cols-[auto_auto] md:justify-start lg:grid-cols-2">
                 {category.sections.map((section) => (
                   <div key={section.title} className="flex flex-col gap-1">
@@ -641,19 +651,14 @@ const ContactView = () => (
                       external={section.link.external}
                       className={classes(
                         contactLinkClasses,
-                        "md:text-base lg:text-lg",
+                        "wrap-normal md:text-base lg:text-lg",
                       )}
                     >
-                      {withBreaks(section.link.text)}
+                      {withBreaks(section.link.text, /(?=\/)/)}
                     </Link>
                   </div>
                 ))}
               </div>
-            )}
-
-            {/* Buttons sit on the bottom edge so they line up across a row */}
-            {category.buttons && (
-              <ContactButtons links={category.buttons} className="mt-auto" />
             )}
           </Box>
         </li>
