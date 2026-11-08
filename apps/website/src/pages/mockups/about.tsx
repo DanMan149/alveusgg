@@ -25,8 +25,9 @@ import Box from "@/components/content/Box";
 import Button from "@/components/content/Button";
 import Heading from "@/components/content/Heading";
 import Link from "@/components/content/Link";
-import { MayaImage } from "@/components/content/Maya";
+import { MayaImage, MayaText } from "@/components/content/Maya";
 import Meta from "@/components/content/Meta";
+import { type Person } from "@/components/content/People";
 import Section from "@/components/content/Section";
 import MockupNotice from "@/components/mockups/MockupNotice";
 import ViewTabs, { underlineTabClassName } from "@/components/mockups/ViewTabs";
@@ -40,6 +41,14 @@ import IconDollar from "@/icons/IconDollar";
 import IconTwitch from "@/icons/IconTwitch";
 import IconUserGroup from "@/icons/IconUserGroup";
 import IconX from "@/icons/IconX";
+
+import ellieArmstrongImage from "@/assets/people/ellie-armstrong.png";
+import joeSiegristImage from "@/assets/people/joe-siegrist.jpg";
+import joelPierreImage from "@/assets/people/joel-pierre.jpg";
+import mayaHigaImage from "@/assets/people/maya-higa.jpg";
+import micheleRaffinImage from "@/assets/people/michele-raffin.png";
+import nickElectricianImage from "@/assets/people/nick-electrician.png";
+import sebastianEcheverriImage from "@/assets/people/sebastian-echeverri.png";
 
 import { history } from "@/pages/about";
 
@@ -530,7 +539,7 @@ const TeamPhoto = ({
   person,
   swap = true,
 }: {
-  person: Staff;
+  person: Pick<Person, "image">;
   swap?: boolean;
 }) => (
   <div className="relative aspect-square h-auto w-full overflow-clip rounded-2xl">
@@ -784,9 +793,220 @@ const TeamView = ({ initialOpen }: { initialOpen?: string }) => {
 
         <BioDialog openKey={open} onClose={closeBio} />
       </Section>
+
+      <BoardSection
+        id="advisory-board"
+        heading="Alveus Advisory Board"
+        people={advisors}
+      >
+        The Alveus advisory board consists of experts in various fields who
+        provide guidance and advice to the Alveus team.
+      </BoardSection>
+
+      <BoardSection
+        id="board-of-directors"
+        heading="Alveus Board of Directors"
+        people={directors}
+      >
+        The Alveus Board of Directors supports and oversees the mission of
+        Alveus Sanctuary, ensuring we stay true to our values and goals.
+      </BoardSection>
     </>
   );
 };
+
+/* ---------- Boards ---------- */
+
+// Copied from the live team page (src/pages/about/team.tsx)
+const advisors: Record<string, Person> = {
+  michele: {
+    image: micheleRaffinImage,
+    name: "Michele Raffin",
+    title: "Advisory Board Member",
+    description: (
+      <>
+        <p>
+          Michele Raffin is president of Pandemonium Aviaries, a conservation
+          organization dedicated to saving birds. A former high-tech executive,
+          Raffin began taking in abandoned and discarded birds fifteen years
+          ago, housing them in her backyard a half hour south of San Francisco.
+          Raffin is a dedicated avian advocate and a passionate observer of
+          birdlife. A certified aviculturist and regular consultant to zoos and
+          breeders, Raffin has spoken at the TEDx conference, is the
+          conservation columnist for the Avicultural Society of America&apos;s
+          Avicultural Bulletin, and has served as co-chair of a large humane
+          society and on the board of a companion bird rescue organization.
+        </p>
+      </>
+    ),
+  },
+  ellie: {
+    image: ellieArmstrongImage,
+    name: "Ellie Armstrong",
+    title: "Advisory Board Member",
+    description: (
+      <>
+        <p>
+          Ellie received her PhD from Stanford University in the Biology
+          Department in 2021 where she used genomics to study big cats and built
+          tools to assist in tracking and identifying illegally traded animals
+          and animal products. She is now a post-doctoral fellow with the
+          Washington Research Foundation at Washington State University, where
+          she has expanded this work to grizzly bears and other Pacific
+          Northwest fauna.
+        </p>
+        <p>
+          Previously, Ellie attended the University of California at Berkeley,
+          where she received her B.S. in Molecular Environmental Biology, and
+          subsequently obtained a M.S. from the University of Hawaii, Hilo.
+        </p>
+        <p>
+          In addition to her work in genetics, Ellie is also a board member and
+          science advisor for Tigers in America and is passionate about working
+          to end unregulated captive breeding in the United States.
+        </p>
+        <p>
+          In her spare time, Ellie loves to hang out with her dogs, run, play
+          video games, and watch Twitch! She&apos;s thrilled to support Alveus
+          as they grow.
+        </p>
+      </>
+    ),
+  },
+  sebastian: {
+    image: sebastianEcheverriImage,
+    name: "Sebastian Echeverri",
+    title: "Advisory Board Member",
+    description: (
+      <>
+        <p>
+          Sebastian is a spider scientist, wildlife photographer, and educator
+          who loves introducing people to wonderfully weird animals. He&apos;s
+          been featured on podcasts, news, and TV, including Ologies, NPR, and
+          Disney+. Sebastian studies the evolutionary relationship between
+          animals&apos; eyes, their environment, and how they use color, shape,
+          and movement to talk with each other. For his PhD, he studied why and
+          how jumping spiders get their audience&apos;s attention when
+          performing their spectacular courtship dances. Currently, he is
+          researching the evolution of eye size across tarantulas. To learn more
+          about his work, visit www.spiderdaynightlive.com. Sebastian advises
+          Alveus on the care and behavior of the sanctuary&apos;s arthropod
+          ambassadors.
+        </p>
+      </>
+    ),
+  },
+  nick: {
+    image: nickElectricianImage,
+    name: "Nick",
+    title: "Advisory Board Member",
+    description: (
+      <>
+        <p>
+          Nick has been a master electrician since 1996, he is also part owner
+          in a wildlife technology company called Window to Wildlife. He has
+          been advising and helping build Alveus&apos; power, internet and cam
+          infrastructure since the beginning. Nick donates a lot of his time and
+          skills and we are excited to have him on the advisory board.
+        </p>
+      </>
+    ),
+  },
+};
+
+// Copied from the live team page (src/pages/about/team.tsx)
+const directors: Record<string, Person> = {
+  maya: {
+    image: mayaHigaImage,
+    name: "Maya Higa",
+    title: "Board Member",
+    description: <MayaText />,
+  },
+  joe: {
+    image: joeSiegristImage,
+    name: "Joe Siegrist",
+    title: "Board Member",
+    description: (
+      <>
+        <p>
+          Joe Siegrist resides in Erie, Pennsylvania and is the President of the
+          Purple Martin Conservation Association. He has previously conducted
+          avian research for the University of Illinois and the Illinois Natural
+          History Survey studying Acadian Flycatchers, Northern Bobwhite, and
+          Neotropical Migrants in general. In addition to conservation research,
+          he has also worked as an educator teaching high school science, a
+          zookeeper, a naturalist, and a stay-at-home parent. Joe also serves on
+          the board of the North American Bluebird Society and as the board
+          chairman of the Erie Bird Observatory.
+        </p>
+      </>
+    ),
+  },
+  joel: {
+    image: joelPierreImage,
+    name: "Joel Pierre",
+    title: "Board Member",
+    description: (
+      <>
+        <p>
+          Joel Pierre resides in Canada and is a Senior Financial Consultant.
+          Joel combines his love for Finance and Technology to help build and
+          develop systems for rapid growth. Previously Financial Controller at
+          Sealion Cargo Inc., Joel demonstrates leadership critical to the
+          success of any organization. Graduate of the University of Toronto
+          with a Specialist in Philosophy, Joel is perfectly aligned with
+          Alveus&apos; core values to educate the world about animals in a new
+          and innovative way.
+        </p>
+      </>
+    ),
+  },
+};
+
+// One light Box card per person with everything in it: photo on the left
+// from sm up (above the text on phones), then the name, role and full bio.
+// Two columns from lg, and cards in a row stretch to the same height
+const BoardSection = ({
+  id,
+  heading,
+  people,
+  children,
+}: {
+  id: string;
+  heading: string;
+  people: Record<string, Person>;
+  children: ReactNode;
+}) => (
+  <Section>
+    <Heading level={2} id={id} link className="mt-0 scroll-mt-4">
+      {heading}
+    </Heading>
+    <p className="max-w-3xl text-lg">{children}</p>
+
+    <ul className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {Object.entries(people).map(([key, person]) => (
+        <li key={key} id={`${id}-${key}`}>
+          <Box className="flex h-full flex-col gap-5 p-5 sm:flex-row">
+            <div className="w-40 shrink-0">
+              <TeamPhoto person={person} swap={false} />
+            </div>
+            <div className="min-w-0">
+              <Heading level={3} className="my-0 text-3xl">
+                {person.name}
+              </Heading>
+              <Heading level={4} className="my-1 text-xl">
+                {person.title}
+              </Heading>
+              <div className="mt-3 flex flex-col gap-4 text-gray-500">
+                {person.description}
+              </div>
+            </div>
+          </Box>
+        </li>
+      ))}
+    </ul>
+  </Section>
+);
 
 /* ---------- Page ---------- */
 
@@ -802,6 +1022,12 @@ const AboutMockupPage: NextPage = () => {
       setDeepLink(hash);
     } else if (hash === "team") {
       setView(1);
+    } else if (hash === "advisory-board" || hash === "board-of-directors") {
+      // The sections only exist once the team view is shown
+      setView(1);
+      requestAnimationFrame(() =>
+        document.getElementById(hash)?.scrollIntoView(),
+      );
     }
   }, []);
 
