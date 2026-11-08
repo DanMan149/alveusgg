@@ -472,29 +472,41 @@ const pronounsFor = (key: string) =>
     ([firstName]) => firstName.toLowerCase() === key,
   )?.[1];
 
-// Twitch channels aren't in the team data yet, so this is only a demo for
-// Connor; the row below the bio is only shown for people listed here
-const twitchByKey: Record<string, { lead: string; channel: string }> = {
-  connor: { lead: "He also streams over at", channel: "theconnorobrien" },
+// Chat usernames aren't in the team data yet, so only Connor has one here as
+// a demo; the line is only shown for people listed here
+const chatUsernameByKey: Record<string, string> = {
+  connor: "theconnorobrien",
 };
 
-const TwitchRow = ({ personKey }: { personKey: string }) => {
-  const twitch = twitchByKey[personKey];
-  if (!twitch) return null;
+// In the bio text style, so it reads as part of the bio rather than a promo
+const ChatUsername = ({
+  personKey,
+  person,
+  className,
+}: {
+  personKey: string;
+  person: Staff;
+  className?: string;
+}) => {
+  const username = chatUsernameByKey[personKey];
+  if (!username) return null;
   return (
-    <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2">
-      <p className="text-gray-500">{twitch.lead}</p>
-      <Button
-        href={`https://www.twitch.tv/${twitch.channel}`}
+    <p className={classes("text-gray-500", className)}>
+      You&apos;ll see {person.name.split(" ")[0]} in chat as{" "}
+      <Link
+        href={`https://www.twitch.tv/${username}`}
         external
-        filled
-        aria-label={`${twitch.channel} on Twitch, opens in a new tab`}
-        className="inline-flex items-center gap-2 px-4 py-1.5 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700"
+        className="whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700"
       >
-        <IconTwitch size={18} aria-hidden="true" />
-        {twitch.channel}
-      </Button>
-    </div>
+        <IconTwitch
+          size="1em"
+          aria-hidden="true"
+          className="mr-1 inline-block align-[-0.125em]"
+        />
+        @{username}
+        <span className="sr-only"> on Twitch</span>
+      </Link>
+    </p>
   );
 };
 
@@ -598,6 +610,7 @@ const TeamCard = ({
         <p className="mt-3 line-clamp-3 text-gray-500">
           {descriptionText(person.description)}
         </p>
+        <ChatUsername personKey={id} person={person} className="mt-2" />
 
         <button
           type="button"
@@ -663,9 +676,10 @@ const BioDialog = ({
 
                 <div className="mt-6 flex flex-col gap-4 text-gray-500">
                   {person.description}
+                  {openKey && (
+                    <ChatUsername personKey={openKey} person={person} />
+                  )}
                 </div>
-
-                {openKey && <TwitchRow personKey={openKey} />}
               </Box>
             )}
           </DialogPanel>
@@ -804,9 +818,9 @@ const AboutMockupPage: NextPage = () => {
 
       <MockupNotice>
         Text comes from the live about and team pages. Pronouns are not in the
-        team data yet, they would come from a field in the data repo. Twitch
-        channels are not in the team data yet either, so the Twitch link in the
-        full bio is only shown for Connor as a demo.
+        team data yet, they would come from a field in the data repo. Chat
+        usernames are not in the team data yet either, so the chat line is only
+        shown for Connor as a demo.
       </MockupNotice>
 
       <ViewTabs
