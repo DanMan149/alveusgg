@@ -41,6 +41,10 @@ import IconDollar from "@/icons/IconDollar";
 import IconUserGroup from "@/icons/IconUserGroup";
 import IconX from "@/icons/IconX";
 
+import leafLeftImage1 from "@/assets/floral/leaf-left-1.png";
+import leafLeftImage2 from "@/assets/floral/leaf-left-2.png";
+import leafLeftImage3 from "@/assets/floral/leaf-left-3.png";
+import leafRightImage2 from "@/assets/floral/leaf-right-2.png";
 import ellieArmstrongImage from "@/assets/people/ellie-armstrong.png";
 import joeSiegristImage from "@/assets/people/joe-siegrist.jpg";
 import joelPierreImage from "@/assets/people/joel-pierre.jpg";
@@ -728,68 +732,91 @@ const TeamView = ({ initialOpen }: { initialOpen?: string }) => {
         <Heading className="my-0">Alveus Team</Heading>
       </Section>
 
-      <Section className="grow">
-        <Heading level={2} id="staff" className="mt-0">
+      {/* Section header copied from the live team page */}
+      <Section className="bg-alveus-green-100 py-16 text-center text-alveus-green-900">
+        <Heading level={2} id="staff" link>
           Alveus Staff
         </Heading>
-        <p className="max-w-3xl text-lg">
+        <p className="mx-auto max-w-2/3 text-lg">
           The staff at Alveus all work at our facility in Texas, providing care
           to our animal ambassadors on a daily basis, cleaning enclosures and
           maintaining the property, and ensuring we can provide the best online
           education experience for livestream viewers.
         </p>
-
-        <div
-          role="group"
-          aria-label="Filter by department"
-          className="mt-6 mb-10 flex flex-wrap items-center border-b border-alveus-green-200"
-        >
-          {(["all", ...departmentKeys] as const).map((key, idx) => {
-            const count = staffEntries.filter(
-              ([, person]) => key === "all" || person.department === key,
-            ).length;
-            return (
-              <span key={key} className="flex items-center">
-                {idx > 0 && (
-                  <span
-                    aria-hidden="true"
-                    className="h-4 w-px bg-alveus-green-300"
-                  />
-                )}
-                <button
-                  type="button"
-                  aria-pressed={department === key}
-                  onClick={() => setDepartment(key)}
-                  className={underlineTabClassName(department === key)}
-                >
-                  {key === "all" ? "All" : departmentLabels[key]}{" "}
-                  <span className="font-sans text-sm text-alveus-green-600">
-                    ({count})
-                  </span>
-                </button>
-              </span>
-            );
-          })}
-        </div>
-
-        <ul className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
-          {filtered.map(([key, person]) => (
-            <TeamCard
-              key={key}
-              id={key}
-              person={person}
-              onOpen={() => openBio(key)}
-            />
-          ))}
-        </ul>
-
-        <BioDialog openKey={open} onClose={closeBio} />
       </Section>
+
+      <div className="relative">
+        <Image
+          src={leafLeftImage1}
+          alt=""
+          className="pointer-events-none absolute -top-52 -left-8 z-10 hidden h-auto w-1/2 max-w-40 -rotate-45 drop-shadow-md select-none lg:block"
+        />
+        <Image
+          src={leafLeftImage3}
+          alt=""
+          className="pointer-events-none absolute -bottom-24 left-0 z-10 hidden h-auto w-1/2 max-w-48 drop-shadow-md select-none lg:block"
+        />
+
+        <Section className="grow">
+          <div
+            role="group"
+            aria-label="Filter by department"
+            className="mb-10 flex flex-wrap items-center border-b border-alveus-green-200"
+          >
+            {(["all", ...departmentKeys] as const).map((key, idx) => {
+              const count = staffEntries.filter(
+                ([, person]) => key === "all" || person.department === key,
+              ).length;
+              return (
+                <span key={key} className="flex items-center">
+                  {idx > 0 && (
+                    <span
+                      aria-hidden="true"
+                      className="h-4 w-px bg-alveus-green-300"
+                    />
+                  )}
+                  <button
+                    type="button"
+                    aria-pressed={department === key}
+                    onClick={() => setDepartment(key)}
+                    className={underlineTabClassName(department === key)}
+                  >
+                    {key === "all" ? "All" : departmentLabels[key]}{" "}
+                    <span className="font-sans text-sm text-alveus-green-600">
+                      ({count})
+                    </span>
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+
+          <ul className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
+            {filtered.map(([key, person]) => (
+              <TeamCard
+                key={key}
+                id={key}
+                person={person}
+                onOpen={() => openBio(key)}
+              />
+            ))}
+          </ul>
+
+          <BioDialog openKey={open} onClose={closeBio} />
+        </Section>
+      </div>
 
       <BoardSection
         id="advisory-board"
         heading="Alveus Advisory Board"
         people={advisors}
+        leaf={
+          <Image
+            src={leafLeftImage2}
+            alt=""
+            className="pointer-events-none absolute right-0 -bottom-20 z-10 hidden h-auto w-1/2 max-w-48 -scale-x-100 drop-shadow-md select-none lg:block"
+          />
+        }
       >
         The Alveus advisory board consists of experts in various fields who
         provide guidance and advice to the Alveus team.
@@ -799,6 +826,13 @@ const TeamView = ({ initialOpen }: { initialOpen?: string }) => {
         id="board-of-directors"
         heading="Alveus Board of Directors"
         people={directors}
+        leaf={
+          <Image
+            src={leafRightImage2}
+            alt=""
+            className="pointer-events-none absolute right-0 -bottom-52 z-10 hidden h-auto w-1/2 max-w-40 drop-shadow-md select-none lg:block 2xl:-bottom-64 2xl:max-w-48"
+          />
+        }
       >
         The Alveus Board of Directors supports and oversees the mission of
         Alveus Sanctuary, ensuring we stay true to our values and goals.
@@ -958,46 +992,56 @@ const directors: Record<string, Person> = {
 // One light Box card per person with everything in it: photo on the left
 // from sm up (above the text on phones), then the name, role and full bio.
 // Two columns from lg, and cards in a row stretch to the same height
+// The header band and leaf are copied from the live team page
 const BoardSection = ({
   id,
   heading,
   people,
+  leaf,
   children,
 }: {
   id: string;
   heading: string;
   people: Record<string, Person>;
+  leaf: ReactNode;
   children: ReactNode;
 }) => (
-  <Section>
-    <Heading level={2} id={id} link className="mt-0 scroll-mt-4">
-      {heading}
-    </Heading>
-    <p className="max-w-3xl text-lg">{children}</p>
+  <>
+    <Section className="bg-alveus-green-100 py-16 text-center text-alveus-green-900">
+      <Heading level={2} id={id} link>
+        {heading}
+      </Heading>
+      <p className="mx-auto max-w-2/3 text-lg">{children}</p>
+    </Section>
 
-    <ul className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
-      {Object.entries(people).map(([key, person]) => (
-        <li key={key} id={`${id}-${key}`}>
-          <Box className="flex h-full flex-col gap-5 p-5 sm:flex-row">
-            <div className="w-40 shrink-0">
-              <TeamPhoto person={person} swap={false} />
-            </div>
-            <div className="min-w-0">
-              <Heading level={3} className="my-0 text-3xl">
-                {person.name}
-              </Heading>
-              <Heading level={4} className="my-1 text-xl">
-                {person.title}
-              </Heading>
-              <div className="mt-3 flex flex-col gap-4 text-gray-500">
-                {person.description}
-              </div>
-            </div>
-          </Box>
-        </li>
-      ))}
-    </ul>
-  </Section>
+    <div className="relative">
+      {leaf}
+      <Section>
+        <ul className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {Object.entries(people).map(([key, person]) => (
+            <li key={key} id={`${id}-${key}`}>
+              <Box className="flex h-full flex-col gap-5 p-5 sm:flex-row">
+                <div className="w-40 shrink-0">
+                  <TeamPhoto person={person} swap={false} />
+                </div>
+                <div className="min-w-0">
+                  <Heading level={3} className="my-0 text-3xl">
+                    {person.name}
+                  </Heading>
+                  <Heading level={4} className="my-1 text-xl">
+                    {person.title}
+                  </Heading>
+                  <div className="mt-3 flex flex-col gap-4 text-gray-500">
+                    {person.description}
+                  </div>
+                </div>
+              </Box>
+            </li>
+          ))}
+        </ul>
+      </Section>
+    </div>
+  </>
 );
 
 /* ---------- Page ---------- */
