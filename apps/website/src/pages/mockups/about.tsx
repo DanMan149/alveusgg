@@ -38,7 +38,6 @@ import IconBolt from "@/icons/IconBolt";
 import IconBox from "@/icons/IconBox";
 import IconChevronDown from "@/icons/IconChevronDown";
 import IconDollar from "@/icons/IconDollar";
-import IconTwitch from "@/icons/IconTwitch";
 import IconUserGroup from "@/icons/IconUserGroup";
 import IconX from "@/icons/IconX";
 
@@ -487,31 +486,25 @@ const chatUsernameByKey: Record<string, string> = {
   connor: "theconnorobrien",
 };
 
-// In the bio text style, so it reads as part of the bio rather than a promo
+// Shown in the full bio, in the bio text style, so it reads as part of the
+// bio rather than a promo
 const ChatUsername = ({
   personKey,
   person,
-  className,
 }: {
   personKey: string;
   person: Staff;
-  className?: string;
 }) => {
   const username = chatUsernameByKey[personKey];
   if (!username) return null;
   return (
-    <p className={classes("text-gray-500", className)}>
+    <p className="text-gray-500">
       You&apos;ll see {person.name.split(" ")[0]} in chat as{" "}
       <Link
         href={`https://www.twitch.tv/${username}`}
         external
         className="whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700"
       >
-        <IconTwitch
-          size="1em"
-          aria-hidden="true"
-          className="mr-1 inline-block align-[-0.125em]"
-        />
         @{username}
         <span className="sr-only"> on Twitch</span>
       </Link>
@@ -619,7 +612,6 @@ const TeamCard = ({
         <p className="mt-3 line-clamp-3 text-gray-500">
           {descriptionText(person.description)}
         </p>
-        <ChatUsername personKey={id} person={person} className="mt-2" />
 
         <button
           type="button"
