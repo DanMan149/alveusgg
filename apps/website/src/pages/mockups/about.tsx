@@ -27,7 +27,7 @@ import Heading from "@/components/content/Heading";
 import Link from "@/components/content/Link";
 import { MayaImage, MayaText } from "@/components/content/Maya";
 import Meta from "@/components/content/Meta";
-import { type Person } from "@/components/content/People";
+import People, { type Person } from "@/components/content/People";
 import Section from "@/components/content/Section";
 import MockupNotice from "@/components/mockups/MockupNotice";
 import ViewTabs, { underlineTabClassName } from "@/components/mockups/ViewTabs";
@@ -1013,30 +1013,7 @@ const BoardSection = ({
     <div className="relative">
       {leaf}
       <Section>
-        <ul className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
-          {Object.entries(people).map(([key, person]) => (
-            <li
-              key={key}
-              id={`${id}-${key}`}
-              className="flex flex-col md:flex-row"
-            >
-              <div className="w-full max-w-xs shrink-0 p-4 lg:max-w-48">
-                <TeamPhoto person={person} swap={false} />
-              </div>
-              <div className="min-w-0 grow p-4">
-                <Heading level={3} className="mt-0 text-4xl">
-                  {person.name}
-                </Heading>
-                <Heading level={4} className="text-xl">
-                  {person.title}
-                </Heading>
-                <div className="flex flex-col gap-4 text-gray-500">
-                  {person.description}
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <People people={people} />
       </Section>
     </div>
   </>
