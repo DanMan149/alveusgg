@@ -989,10 +989,6 @@ const directors: Record<string, Person> = {
   },
 };
 
-// One light Box card per person with everything in it: photo on the left
-// from sm up (above the text on phones), then the name, role and full bio.
-// Two columns from lg, and cards in a row stretch to the same height
-// The header band and leaf are copied from the live team page
 const BoardSection = ({
   id,
   heading,
@@ -1017,25 +1013,27 @@ const BoardSection = ({
     <div className="relative">
       {leaf}
       <Section>
-        <ul className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <ul className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
           {Object.entries(people).map(([key, person]) => (
-            <li key={key} id={`${id}-${key}`}>
-              <Box className="flex h-full flex-col gap-5 p-5 sm:flex-row">
-                <div className="w-40 shrink-0">
-                  <TeamPhoto person={person} swap={false} />
+            <li
+              key={key}
+              id={`${id}-${key}`}
+              className="flex flex-col md:flex-row"
+            >
+              <div className="w-full max-w-xs shrink-0 p-4 lg:max-w-48">
+                <TeamPhoto person={person} swap={false} />
+              </div>
+              <div className="min-w-0 grow p-4">
+                <Heading level={3} className="mt-0 text-4xl">
+                  {person.name}
+                </Heading>
+                <Heading level={4} className="text-xl">
+                  {person.title}
+                </Heading>
+                <div className="flex flex-col gap-4 text-gray-500">
+                  {person.description}
                 </div>
-                <div className="min-w-0">
-                  <Heading level={3} className="my-0 text-3xl">
-                    {person.name}
-                  </Heading>
-                  <Heading level={4} className="my-1 text-xl">
-                    {person.title}
-                  </Heading>
-                  <div className="mt-3 flex flex-col gap-4 text-gray-500">
-                    {person.description}
-                  </div>
-                </div>
-              </Box>
+              </div>
             </li>
           ))}
         </ul>
