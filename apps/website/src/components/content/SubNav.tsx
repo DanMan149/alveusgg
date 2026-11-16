@@ -51,7 +51,7 @@ const SubNavInner = ({
             href={href}
             custom
             className={classes(
-              "flex items-center gap-1 rounded-full py-1 transition-colors",
+              "flex items-center gap-1 rounded-full py-1 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alveus-green-700",
               isActive
                 ? "bg-alveus-green-800 text-white"
                 : "hover:bg-alveus-green-200",
@@ -212,7 +212,7 @@ const SubNav = ({
             <SubNavInner links={links} className="flex flex-col" />
           </DisclosurePanel>
 
-          <DisclosureButton className="ml-auto p-1.5">
+          <DisclosureButton className="ml-auto p-1.5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-alveus-green-700">
             <IconMenu />
           </DisclosureButton>
         </Disclosure>
